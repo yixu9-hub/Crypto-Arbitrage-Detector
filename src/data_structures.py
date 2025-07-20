@@ -13,11 +13,10 @@ class TokenInfo:
     tags: List[str]
 
     # Volume data from DexScreener
+    creation_date:int = 0
     volume_24h: float = 0.0
     liquidity: float = 0.0
-    price_usd: float = 0.0
-    market_cap: float = 0.0
-    price_change_24h: float = 0.0
+    volume_rank: int = 0
     
     def __post_init__(self):
         if self.tags is None:
@@ -34,3 +33,4 @@ class QuoteResponse:
     slippage_bps: int
     price_impact_pct: float
     route_plan: List[Dict]
+    platform_fee: float
