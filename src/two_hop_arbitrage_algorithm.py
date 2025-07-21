@@ -3,6 +3,10 @@ Two-Hop Arbitrage Detection Algorithm
 '''
 import networkx as nx
 import math
+import sys
+import os
+# Add project path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from typing import List, Optional
 from utils.data_structures import ArbitrageOpportunity
 

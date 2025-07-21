@@ -4,13 +4,13 @@ from dataclasses import dataclass
 
 @dataclass
 class TokenInfo:
-    # Token information from Jupiter list
-    address: str = ""
-    symbol: str = ""
-    name: str = ""
-    decimals: int = 0
-    logoURI: str = ""
-    tags: List[str] = None
+    # Token information fron Jupiter list
+    address: str
+    symbol: str
+    name: str
+    decimals: int
+    logoURI: str
+    tags: List[str]
 
     # Volume data from DexScreener
     volume_24h: float = 0.0
@@ -26,32 +26,27 @@ class TokenInfo:
 
 @dataclass
 class EdgePairs:
-    from_token: str = ""  # from quote api inputMint
-    to_token: str = ""  # from quote api outputMint
-    price_ratio: float = 0.0  # calculated from quote api inAmount and outAmount
-    weight: float = 0.0  # calculated from price_ratio
-    slippage_bps: int = 0  # from quote api slippageBps
-    platform_fee: float = 0.0  # from quote api platformFee
-    price_impact_pct: float = 0.0  # from quote api priceImpactPct
-    total_fee: float = 0.0  # calculated from quote api routePlan
+    from_token: str  # from quote api inputMint
+    to_token: str  # from quote api outputMint
+    price_ratio: float  # calculated from quote api inAmount and outAmount
+    weight: float  # calculated from price_ratio
+    slippage_bps: int  # from quote api slippageBps
+    platform_fee: float  # from quote api platformFee
+    price_impact_pct: float  # from quote api priceImpactPct
+    total_fee: float  # calculated from quote api routePlan
 
 
 @dataclass
 class ArbitrageOpportunity:
-    """表示一个套利机会"""
-    path: List[str] = None
-    path_symbols: List[str] = None
-    profit_ratio: float = 0.0
-    total_weight: float = 0.0
-    total_fee: float = 0.0
-    hop_count: int = 0
-    confidence_score: float = 0.0  # 置信度分数 (0-1)
-    estimated_profit_sol: float = 0.0  # 预估利润 (SOL)
+    path: List[str]
+    path_symbols: List[str]
+    profit_ratio: float
+    total_weight: float
+    total_fee: float
+    hop_count: int
+    confidence_score: float  # 置信度分数 (0-1)
+    estimated_profit_sol: float  # 预估利润 (SOL)
 
     def __post_init__(self):
-        if self.path is None:
-            self.path = []
-        if self.path_symbols is None:
-            self.path_symbols = []
-        if not self.hop_count and self.path:
+        if not self.hop_count:
             self.hop_count = len(self.path) - 1

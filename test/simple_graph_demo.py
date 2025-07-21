@@ -1,14 +1,14 @@
 '''
 Simple Graph System Demo
 '''
-from test.mock_data import static_test_edges
-from utils.graph_utils import visualize_graph, analyze_graph
-from utils.graph_structure import TokenGraphBuilder, build_graph_from_edge_lists
 import sys
 import os
 
-# Add project path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from test.mock_data import static_test_edges
+from utils.graph_utils import visualize_graph, analyze_graph
+from utils.graph_structure import TokenGraphBuilder, build_graph_from_edge_lists
 
 
 def simple_graph_demo():
