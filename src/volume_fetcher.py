@@ -1,5 +1,6 @@
 import asyncio
 import aiohttp
+import pickle
 from typing import List, Dict
 from collections import defaultdict
 from dataclasses import dataclass
@@ -48,10 +49,10 @@ class MassVolumeRanker:
                 if len(top_winners) >= top_n:
                     break
         
-        print(f"🏆 Phase 3: Found top {len(top_winners)} qualifying tokens")
+        print(f"Phase 3: Found top {len(top_winners)} qualifying tokens")
         
         # Phase 3: Enrich ONLY the top N tokens with detailed data
-        print(f"✨ Phase 4: Enriching only the top {len(top_winners)} tokens...")
+        print(f"Phase 4: Enriching only the top {len(top_winners)} tokens...")
         enriched_tokens = await self._enrich_winner_tokens(top_winners, jupiter_token_map)
         
         return enriched_tokens
@@ -94,7 +95,7 @@ class MassVolumeRanker:
         ) as session:
             
             # Process in chunks to manage memory
-            chunk_size = 350  # 350 batches at a time
+            chunk_size = 2000  # 2000 batches at a time
             total_processed = 0
             
             for chunk_start in range(0, len(batches), chunk_size):
@@ -249,6 +250,29 @@ class MassVolumeRanker:
             
             enriched_tokens.append(jupiter_token)
         return enriched_tokens
+
+
+    def save_tokens(self, enriched_tokens, filename="enriched_tokens.pkl"):
+        try:
+            with open(filename, "wb") as f:
+                pickle.dump(enriched_tokens, f)
+                print(f"TokenInfo data saved to {filename}")
+        except Exception as e:
+            print(f"Error saving tokens: {e}")
+    
+    def load_tokens(self, filename="enriched_tokens.pkl"):
+        try:
+            with open(filename, "rb") as f:
+                enriched_tokens = pickle.load(f)
+                print(f"Loaded {len(enriched_tokens)} tokens from {filename}")
+                return enriched_tokens
+        except FileNotFoundError:
+            print(f"File {filename} not found.")
+            return None
+        except Exception as e:
+            print(f"Error loading tokens: {e}")
+            return None
+   
     
 async def main(top_n_tokens: int = 30) -> Dict:
     """Ultra-optimized pipeline: rank all, enrich only winners"""
@@ -265,9 +289,16 @@ async def main(top_n_tokens: int = 30) -> Dict:
     top_tokens = await volume_ranker.get_top_tokens_optimized(
         all_tokens[:1000], 30
     )
-    for winner in top_tokens:
-        print(f" {winner.volume_rank:2d}. {winner.symbol:10s} - ${winner.volume_24h:>12,.0f}")
+    # for winner in top_tokens:
+    #     print(f" {winner.volume_rank:2d}. {winner.symbol:10s} - ${winner.volume_24h:>12,.0f}")
+        
+    volume_ranker.save_tokens(top_tokens)
 
+    # Loading
+    loaded_tokens = volume_ranker.load_tokens()
+    if loaded_tokens is not None:
+        for winner in loaded_tokens:
+            print(f" {winner.volume_rank:2d}. {winner.symbol:10s} - ${winner.volume_24h:>12,.0f}")
 
 if __name__ == "__main__":
     tokens = asyncio.run(main())
