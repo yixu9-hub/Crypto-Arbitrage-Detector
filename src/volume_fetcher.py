@@ -6,6 +6,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from data_structures import TokenInfo
 from jupiter_client import JupiterAPIClient
+import os
+from datetime import datetime, timedelta
 
 @dataclass
 class VolumeRanking:
@@ -260,19 +262,7 @@ class MassVolumeRanker:
         except Exception as e:
             print(f"Error saving tokens: {e}")
     
-    def load_tokens(self, filename="enriched_tokens.pkl"):
-        try:
-            with open(filename, "rb") as f:
-                enriched_tokens = pickle.load(f)
-                print(f"Loaded {len(enriched_tokens)} tokens from {filename}")
-                return enriched_tokens
-        except FileNotFoundError:
-            print(f"File {filename} not found.")
-            return None
-        except Exception as e:
-            print(f"Error loading tokens: {e}")
-            return None
-   
+
     
 async def main(top_n_tokens: int = 30) -> Dict:
     """Ultra-optimized pipeline: rank all, enrich only winners"""
@@ -289,16 +279,11 @@ async def main(top_n_tokens: int = 30) -> Dict:
     top_tokens = await volume_ranker.get_top_tokens_optimized(
         all_tokens[:1000], 30
     )
-    # for winner in top_tokens:
-    #     print(f" {winner.volume_rank:2d}. {winner.symbol:10s} - ${winner.volume_24h:>12,.0f}")
-        
-    volume_ranker.save_tokens(top_tokens)
 
-    # Loading
-    loaded_tokens = volume_ranker.load_tokens()
-    if loaded_tokens is not None:
-        for winner in loaded_tokens:
-            print(f" {winner.volume_rank:2d}. {winner.symbol:10s} - ${winner.volume_24h:>12,.0f}")
+    for winner in top_tokens:
+        print(f" {winner.volume_rank:2d}. {winner.symbol:10s} - ${winner.volume_24h:>12,.0f}")
+
+    volume_ranker.save_tokens(top_tokens)
 
 if __name__ == "__main__":
     tokens = asyncio.run(main())
