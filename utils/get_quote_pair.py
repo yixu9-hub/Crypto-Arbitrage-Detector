@@ -2,10 +2,9 @@ import asyncio
 import aiohttp
 from typing import List, Dict
 from dataclasses import dataclass, field
-from data_structures import TokenInfo, QuoteResponse, EdgePairs
+from data_structures import TokenInfo, EdgePairs
 import strategy_config
 import math
-from tests.mock_quote_pair import test_tokens
 
 # quote api
 JUPITER_QUOTE_API = "https://quote-api.jup.ag/v6/quote"
