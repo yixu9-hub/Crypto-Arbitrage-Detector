@@ -32,4 +32,4 @@ class EdgePairs:
     slippage_bps: int  # from quote api slippageBps
     platform_fee: float  # from quote api platformFee
     price_impact_pct: float  # from quote api priceImpactPct
-    total_fee: int  # calculated from quote api routePlan
+    total_fee: float  # calculated from quote api routePlan
