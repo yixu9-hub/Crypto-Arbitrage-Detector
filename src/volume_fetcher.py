@@ -16,6 +16,7 @@ class VolumeRanking:
     volume_24h: float
     liquidity_usd: float
     rank: int
+    creation_date: str
 
 class MassVolumeRanker:
     def __init__(self):
@@ -172,7 +173,8 @@ class MassVolumeRanker:
         token_data = defaultdict(lambda: {
             'volume_24h': 0.0,
             'liquidity_usd': 0.0,
-            'symbol': ''
+            'symbol': '',
+            'creation_date': 0
         })
         
         for pair in pairs:
@@ -182,27 +184,29 @@ class MassVolumeRanker:
                 
                 # Only extract what we need for ranking
                 base_token = pair.get('baseToken', {})
-                quote_token = pair.get('quoteToken', {})
+                # quote_token = pair.get('quoteToken', {})
                 volume_24h = float(pair.get('volume', {}).get('h24', 0))
                 liquidity = float(pair.get('liquidity', {}).get('usd', 0))
                 
                 # Skip very low volume pairs
+                # TODO: Make this configurable
                 if volume_24h < 100:
                     continue
                 
-                for token_info in [base_token, quote_token]:
-                    address = token_info.get('address')
-                    if not address:
-                        continue
-                    
-                    # Minimal aggregation
-                    token_data[address]['volume_24h'] += volume_24h
-                    token_data[address]['liquidity_usd'] = max(
-                        token_data[address]['liquidity_usd'], liquidity
-                    )
-                    
-                    if not token_data[address]['symbol']:
-                        token_data[address]['symbol'] = token_info.get('symbol', '')
+                # for token_info in [base_token, quote_token]:
+                address = base_token.get('address')
+                if not address:
+                    continue
+                
+                # Minimal aggregation
+                token_data[address]['volume_24h'] = volume_24h
+                token_data[address]['liquidity_usd'] = max(
+                    token_data[address]['liquidity_usd'], liquidity
+                )
+                token_data[address]['creation_date'] = datetime.fromtimestamp(pair.get('pairCreatedAt', 0)/1000).strftime("%Y-%m-%d %H:%M:%S")
+                
+                if not token_data[address]['symbol']:
+                    token_data[address]['symbol'] = token_info.get('symbol', '')
                         
             except Exception:
                 continue
@@ -222,6 +226,7 @@ class MassVolumeRanker:
                     symbol=data['symbol'] or address[:8],
                     volume_24h=data['volume_24h'],
                     liquidity_usd=data['liquidity_usd'],
+                    creation_date=data['creation_date'],
                     rank=0  # Will be set after sorting
                 )
                 rankings.append(ranking)
@@ -249,12 +254,13 @@ class MassVolumeRanker:
             jupiter_token.volume_24h = winner.volume_24h
             jupiter_token.liquidity = winner.liquidity_usd
             jupiter_token.volume_rank = winner.rank
+            jupiter_token.creation_date = winner.creation_date
             
             enriched_tokens.append(jupiter_token)
         return enriched_tokens
 
 
-    def save_tokens(self, enriched_tokens, filename="enriched_tokens.pkl"):
+    def save_tokens(self, enriched_tokens, filename="data/enriched_tokens.pkl"):
         try:
             with open(filename, "wb") as f:
                 pickle.dump(enriched_tokens, f)
@@ -281,7 +287,7 @@ async def main(top_n_tokens: int = 30) -> Dict:
     )
 
     for winner in top_tokens:
-        print(f" {winner.volume_rank:2d}. {winner.symbol:10s} - ${winner.volume_24h:>12,.0f}")
+        print(f" {winner.volume_rank:2d}. {winner.symbol:10s} -{winner.creation_date} -${winner.volume_24h:>12,.0f}")
 
     volume_ranker.save_tokens(top_tokens)
 

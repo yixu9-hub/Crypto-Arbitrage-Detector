@@ -151,7 +151,7 @@ def main():
     
     print("\nSample tokens:")
     for i, token in enumerate(all_tokens[:5]):
-        print(f"   {i+1}. {token['symbol']} - {token['name']}")
+        print(f"   {i+1}. {token.symbol} - {token.name}")
 
 if __name__ == "__main__":
     main()

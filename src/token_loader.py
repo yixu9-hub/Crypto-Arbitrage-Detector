@@ -41,13 +41,12 @@ class TokenLoader:
             
         except:
             return False
-
 def main():
     # Loading
-    loaded_tokens = TokenLoader().load_tokens()
+    loaded_tokens = TokenLoader().load_tokens(filename="data/enriched_tokens.pkl")
     if loaded_tokens is not None:
         for winner in loaded_tokens:
-            print(f" {winner.volume_rank:2d}. {winner.symbol:10s} - ${winner.volume_24h:>12,.0f}")
+            print(f" {winner.volume_rank:2d}. {winner.symbol:10s} -{winner.creation_date} - ${winner.volume_24h:>12,.0f}")
 
 if __name__ == "__main__":
-   main()
+    main()

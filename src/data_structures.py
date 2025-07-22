@@ -13,7 +13,7 @@ class TokenInfo:
     tags: List[str]
 
     # Volume data from DexScreener
-    creation_date:int = 0
+    creation_date: str = ''
     volume_24h: float = 0.0
     liquidity: float = 0.0
     volume_rank: int = 0
