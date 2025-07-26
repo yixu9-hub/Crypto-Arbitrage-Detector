@@ -82,13 +82,14 @@ async def get_edge_pairs(token_list: List[TokenInfo]) -> List[EdgePairs]:
                         fee = float(fee_str)
                         price_in_sol = price_map.get(fee_mint, 0.0)
                         total_fee_sol += fee * price_in_sol
-                
+              
                 # Handle platform fee if return null
                 platform_fee_info = data.get("platformFee"),
                 if isinstance(platform_fee_info, dict):
                     platform_fee = float(platform_fee_info.get("amount", 0))
                 else:
                     platform_fee = 0.0
+
                 # Create EdgePairs object
                 edge = EdgePairs(
                     from_token=data["inputMint"],
@@ -108,7 +109,7 @@ async def get_edge_pairs(token_list: List[TokenInfo]) -> List[EdgePairs]:
 
 
 # Helper Function to generate a price map from sol to other tokens to count the price of each token in terms of SOL
-def generate_price_map_from_responses(responses: List[Dict]) -> Dict[str, float]:
+def generate_price_map_from_responses(responses: List[Dict]) -> Dict[str, float]:3
     price_map = {strategy_config.SOL_MINT: 1.0}
 
     for data in responses:
@@ -123,10 +124,46 @@ def generate_price_map_from_responses(responses: List[Dict]) -> Dict[str, float]
                 price = 1 / (out_amt / in_amt)  # other_token/SOL → SOL/other_token
                 price_map[out_mint] = price
             elif out_mint == strategy_config.SOL_MINT and in_amt > 0:
+
                 # 1 token = ? SOL
                 price = out_amt / in_amt
                 price_map[in_mint] = price
         except (KeyError, ZeroDivisionError, TypeError):
             continue
-
     return price_map
+
+
+# Legacy synchronous function for backward compatibility
+def get_quote_pair(input_mint, output_mint, amount=DEFAULT_TX_AMOUNT, input_symbol=None, output_symbol=None):
+    """
+    Synchronous wrapper for the async fetch_quote function
+    For backward compatibility with existing code
+    """
+    async def _get_quote():
+        async with aiohttp.ClientSession() as session:
+            quote = await fetch_quote(session, input_mint, output_mint, amount)
+            if quote and 'inAmount' in quote and 'outAmount' in quote:
+                in_amount = int(quote['inAmount'])
+                out_amount = int(quote['outAmount'])
+                price_ratio = out_amount / in_amount if in_amount > 0 else 0
+
+                return EdgePairs(
+                    from_token=input_symbol or input_mint,
+                    to_token=output_symbol or output_mint,
+                    price_ratio=price_ratio,
+                    weight=-
+                    math.log(price_ratio) if price_ratio > 0 else float('inf'),
+                    slippage_bps=DEFAULT_SLIPPAGE_BPS,
+                    platform_fee=0.0025,
+                    price_impact_pct=quote.get("priceImpactPct", 0.02),
+                    total_fee=0.003
+                )
+            return None
+
+    # Run the async function in sync context
+    try:
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(_get_quote())
+    except RuntimeError:
+        # If no event loop is running, create a new one
+        return asyncio.run(_get_quote())
