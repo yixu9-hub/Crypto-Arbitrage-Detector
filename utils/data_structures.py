@@ -1,7 +1,6 @@
 from typing import List, Dict, Optional
 from dataclasses import dataclass
 
-
 @dataclass
 class TokenInfo:
     # Token information fron Jupiter list
@@ -34,8 +33,6 @@ class EdgePairs:
     platform_fee: float  # from quote api platformFee
     price_impact_pct: float  # from quote api priceImpactPct
     total_fee: float  # calculated from quote api routePlan
-
-
 @dataclass
 class ArbitrageOpportunity:
     path: List[str]

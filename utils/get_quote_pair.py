@@ -2,30 +2,20 @@ import asyncio
 import aiohttp
 from typing import List, Dict
 from dataclasses import dataclass, field
-import sys
-import os
-# Add project path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.data_structures import TokenInfo, EdgePairs
+from data_structures import TokenInfo, EdgePairs
+import strategy_config
 import math
-
-# Configuration constants (replacing strategy_config imports)
-DEFAULT_TX_AMOUNT = 1000000  # 1 SOL in lamports
-DEFAULT_SLIPPAGE_BPS = 50    # 0.5%
-SOL_MINT = "So11111111111111111111111111111111111111112"
 
 # quote api
 JUPITER_QUOTE_API = "https://quote-api.jup.ag/v6/quote"
 
 # Function to prepare single request from Jupiter quote API
-
-
-async def fetch_quote(session: aiohttp.ClientSession, input_mint: str, output_mint: str, amount: int = DEFAULT_TX_AMOUNT) -> Dict:
+async def fetch_quote(session: aiohttp.ClientSession, input_mint: str, output_mint: str, amount: int=strategy_config.DEFAULT_TX_AMOUNT) -> Dict:
     params = {
         "inputMint": input_mint,
         "outputMint": output_mint,
         "amount": amount,
-        "slippageBps": DEFAULT_SLIPPAGE_BPS
+        "slippageBps": strategy_config.DEFAULT_SLIPPAGE_BPS
     }
     # Set headers to mimic a browser request
     headers = {
@@ -37,23 +27,20 @@ async def fetch_quote(session: aiohttp.ClientSession, input_mint: str, output_mi
     }
     try:
         async with session.get(JUPITER_QUOTE_API, params=params, headers=headers) as resp:
-            # print(f"[DEBUG] Request URL: {resp.url}")
+            #print(f"[DEBUG] Request URL: {resp.url}")
             if resp.status == 200:
                 quote_data = await resp.json()
-                # print(f"[DEBUG] Response Data: {quote_data}")
+                #print(f"[DEBUG] Response Data: {quote_data}")
                 return quote_data
             else:
-                print(
-                    f"Non-200 response: {resp.status} | {input_mint} {output_mint}")
+                print(f"Non-200 response: {resp.status} | {input_mint} {output_mint}")
                 return {}
-
+        
     except Exception as e:
         print(f"Error fetching quote: {e}")
         return {}
 
 # Function to request data from Jupiter API for edge pairs
-
-
 async def get_edge_pairs(token_list: List[TokenInfo]) -> List[EdgePairs]:
     edge_pairs = []
     # create all requests for each token pair
@@ -62,14 +49,13 @@ async def get_edge_pairs(token_list: List[TokenInfo]) -> List[EdgePairs]:
         for token_in in token_list:
             for token_out in token_list:
                 if token_in.address != token_out.address:
-                    tasks.append(fetch_quote(
-                        session, token_in.address, token_out.address))
+                    tasks.append(fetch_quote(session, token_in.address, token_out.address))
 
     # execute all requests concurrently
         responses = await asyncio.gather(*tasks)
-
+    
     # generate a price map in order to calculate the total_fee in SOL
-    price_map = generate_price_map_from_responses(responses)
+    price_map =generate_price_map_from_responses(responses)
 
     # process the responses and create EdgePairs
     for data in responses:
@@ -96,9 +82,9 @@ async def get_edge_pairs(token_list: List[TokenInfo]) -> List[EdgePairs]:
                         fee = float(fee_str)
                         price_in_sol = price_map.get(fee_mint, 0.0)
                         total_fee_sol += fee * price_in_sol
-
+              
                 # Handle platform fee if return null
-                platform_fee_info = data.get("platformFee")
+                platform_fee_info = data.get("platformFee"),
                 if isinstance(platform_fee_info, dict):
                     platform_fee = float(platform_fee_info.get("amount", 0))
                 else:
@@ -123,8 +109,8 @@ async def get_edge_pairs(token_list: List[TokenInfo]) -> List[EdgePairs]:
 
 
 # Helper Function to generate a price map from sol to other tokens to count the price of each token in terms of SOL
-def generate_price_map_from_responses(responses: List[Dict]) -> Dict[str, float]:
-    price_map = {SOL_MINT: 1.0}
+def generate_price_map_from_responses(responses: List[Dict]) -> Dict[str, float]:3
+    price_map = {strategy_config.SOL_MINT: 1.0}
 
     for data in responses:
         try:
@@ -133,18 +119,17 @@ def generate_price_map_from_responses(responses: List[Dict]) -> Dict[str, float]
             in_amt = float(data["inAmount"])
             out_amt = float(data["outAmount"])
 
-            if in_mint == SOL_MINT and out_amt > 0:
+            if in_mint == strategy_config.SOL_MINT and out_amt > 0:
                 # 1 SOL = ? other_token
-                # other_token/SOL → SOL/other_token
-                price = 1 / (out_amt / in_amt)
+                price = 1 / (out_amt / in_amt)  # other_token/SOL → SOL/other_token
                 price_map[out_mint] = price
-            elif out_mint == SOL_MINT and in_amt > 0:
+            elif out_mint == strategy_config.SOL_MINT and in_amt > 0:
+
                 # 1 token = ? SOL
                 price = out_amt / in_amt
                 price_map[in_mint] = price
         except (KeyError, ZeroDivisionError, TypeError):
             continue
-
     return price_map
 
 
