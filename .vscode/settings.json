@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "./crypto-arbitrage-detector/utils",
+        "./crypto-arbitrage-detector/algorithms",
+        "./crypto-arbitrage-detector"
+    ]
+}

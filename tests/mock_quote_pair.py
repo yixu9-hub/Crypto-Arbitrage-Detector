@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List
-from utils.data_structures import TokenInfo
+from crypto_arbitrage_detector.utils.data_structures import TokenInfo
 
 
 # ✅ 示例测试数据
