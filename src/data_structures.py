@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional
 from dataclasses import dataclass
-from config import JUPITER_CONFIG
+# from config import JUPITER_CONFIG
 
 @dataclass
 class TokenInfo:

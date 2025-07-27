@@ -1,71 +1,92 @@
+#!/usr/bin/env python3
+"""
+Download the latest Jupiter token list and save it to data/jupiter_tokens.json
+This script should be run weekly to keep the token list fresh.
+"""
+
 import requests
 import json
 import os
 from datetime import datetime
+from typing import Dict, List
 
-class TokenDownloader:
-    def __init__(self):
-        self.jupiter_url = 'https://cache.jup.ag/tokens'
-        self.output_file = 'data/jupiter_tokens.json'
-        
-    def download_and_save_tokens(self):
-        """Download tokens from Jupiter API and save to JSON file"""
-        
-        # Create data directory if it doesn't exist
-        os.makedirs(os.path.dirname(self.output_file), exist_ok=True)
-        
-        print("Downloading token list from Jupiter API...")
-
-        try:
-            # Make HTTP request
-            response = requests.get(self.jupiter_url, timeout=30)
-            
-            if response.status_code == 200:
-                tokens_data = response.json()
-                
-                # Add metadata
-                metadata = {
-                    "downloaded_at": datetime.now().isoformat(),
-                    "source": self.jupiter_url,
-                    "total_tokens": len(tokens_data)
-                }
-                
-                # Save to file
-                output_data = {
-                    "metadata": metadata,
-                    "tokens": tokens_data
-                }
-                
-                with open(self.output_file, 'w', encoding='utf-8') as file:
-                    json.dump(output_data, file, indent=2, ensure_ascii=False)
+def download_jupiter_tokens() -> Dict:
+    """Download the latest token list from Jupiter API"""
     
-                        
-                    print(f"Successfully saved {len(tokens_data)} tokens to {self.output_file}")
-                    print(f"File size: {os.path.getsize(self.output_file) / 1024 / 1024:.2f} MB")
-                    
-                    # Show sample tokens
-                    print("\nSample tokens:")
-                    for i, token in enumerate(tokens_data[:5]):
-                        print(f"   {i+1}. {token['symbol']} - {token['name']}")
-                    
-                    return True
-                    
-            else:
-                print(f"Error downloading tokens: HTTP {response.status}")
-                return False
-                
-        except Exception as e:
-            print(f"Error downloading tokens: {e}")
-            return False
+    url = "https://cache.jup.ag/tokens"
+    
+    try:
+        print("🔄 Downloading latest Jupiter token list...")
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        
+        tokens = response.json()
+        print(f"✅ Downloaded {len(tokens)} tokens from Jupiter")
+        
+        return tokens
+        
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error downloading tokens: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"❌ Error parsing JSON response: {e}")
+        return []
+
+def save_tokens_with_metadata(tokens: List[Dict], filename: str = "data/jupiter_tokens.json"):
+    """Save tokens with metadata including download timestamp"""
+    
+    # Ensure data directory exists
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    
+    # Create data structure with metadata
+    data = {
+        "tokens": tokens,
+        "metadata": {
+            "downloaded_at": datetime.now().isoformat(),
+            "source": "https://cache.jup.ag/tokens",
+            "total_tokens": len(tokens),
+            "description": "Jupiter token list with basic token information"
+        }
+    }
+    
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        print(f"✅ Token list saved to {filename}")
+        print(f"📊 Total tokens: {len(tokens)}")
+        print(f"🕒 Downloaded at: {data['metadata']['downloaded_at']}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error saving tokens: {e}")
+        return False
 
 def main():
-    downloader = TokenDownloader()
-    success = downloader.download_and_save_tokens()
+    """Main function to download and save Jupiter tokens"""
+    
+    print("🚀 Jupiter Token Downloader")
+    print("=" * 40)
+    
+    # Download tokens
+    tokens = download_jupiter_tokens()
+    
+    if not tokens:
+        print("❌ Failed to download tokens. Exiting.")
+        return False
+    
+    # Save tokens with metadata
+    success = save_tokens_with_metadata(tokens)
     
     if success:
-        print("\nToken download completed successfully!")
+        print("\n✅ Token download completed successfully!")
+        print("💡 This file will be refreshed weekly (7 days)")
+        return True
     else:
-        print("\nToken download failed!")
+        print("\n❌ Token download failed!")
+        return False
 
 if __name__ == "__main__":
-    main()
+    success = main()
+    exit(0 if success else 1)

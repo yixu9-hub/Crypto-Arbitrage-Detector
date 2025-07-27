@@ -2,7 +2,7 @@ import pickle
 import os
 from typing import List
 from datetime import datetime, timedelta
-from data_structures import TokenInfo
+from src.data_structures import TokenInfo
 
 class TokenLoader:
     def __init__(self, filename: str = "data/enriched_tokens.pkl"):

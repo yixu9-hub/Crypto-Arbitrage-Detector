@@ -262,6 +262,8 @@ class MassVolumeRanker:
 
     def save_tokens(self, enriched_tokens, filename="data/enriched_tokens.pkl"):
         try:
+            # Ensure the data directory exists
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
             with open(filename, "wb") as f:
                 pickle.dump(enriched_tokens, f)
                 print(f"TokenInfo data saved to {filename}")
