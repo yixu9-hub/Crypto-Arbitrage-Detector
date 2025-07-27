@@ -2,6 +2,16 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass
 
 @dataclass
+class VolumeRanking:
+    address: str
+    symbol: str
+    volume_24h: float
+    liquidity_usd: float
+    rank: int
+    creation_date: str
+
+
+@dataclass
 class TokenInfo:
     # Token information fron Jupiter list
     address: str

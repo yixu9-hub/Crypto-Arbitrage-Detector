@@ -6,7 +6,7 @@ import aiohttp
 from typing import List, Dict
 from dataclasses import dataclass, field
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo, EdgePairs
-from crypto_arbitrage_detector.configs import strategy_config
+from crypto_arbitrage_detector.configs import request_config
 
 import math
 
@@ -19,12 +19,22 @@ async def fetch_quote(
         input_mint: str, 
         output_mint: str, 
         #semaphore: asyncio.Semaphore, 
-        amount: int = strategy_config.DEFAULT_TX_AMOUNT) -> Dict:
+        amount: int = request_config.DEFAULT_TX_AMOUNT) -> Dict:
+    '''
+    Fetch quote from Jupiter API for a given token pair.
+    Args:
+        session (aiohttp.ClientSession): The session to use for the request.
+        input_mint (str): The mint address of the input token.
+        output_mint (str): The mint address of the output token.
+        amount (int): The amount of input token to swap.
+    Returns:
+        Dict: The quote data from the API.
+    '''
     params = {
         "inputMint": input_mint,
         "outputMint": output_mint,
         "amount": amount,
-        "slippageBps": strategy_config.DEFAULT_SLIPPAGE_BPS
+        "slippageBps": request_config.DEFAULT_SLIPPAGE_BPS
     }
     # Set headers to mimic a browser request
     headers = {
@@ -60,6 +70,13 @@ async def fetch_quote(
 
 # Function to request data from Jupiter API for edge pairs
 async def get_edge_pairs(token_list: List[TokenInfo]) -> List[EdgePairs]:
+    '''
+    Fetch edge pairs from Jupiter API for all token combinations.
+    Args:
+        token_list (List[TokenInfo]): List of TokenInfo objects.
+    Returns:
+        List[EdgePairs]: List of EdgePairs objects containing quote data.
+    '''
     #semaphore = asyncio.Semaphore(5)
     edge_pairs = []
     # create all requests for each token pair
@@ -134,7 +151,7 @@ async def get_edge_pairs(token_list: List[TokenInfo]) -> List[EdgePairs]:
 
 # Helper Function to generate a price map from sol to other tokens to count the price of each token in terms of SOL
 def generate_price_map_from_responses(responses: List[Dict]) -> Dict[str, float]:
-    price_map = {strategy_config.SOL_MINT: 1.0}
+    price_map = {request_config.SOL_MINT: 1.0}
 
     for data in responses:
         try:
@@ -143,11 +160,11 @@ def generate_price_map_from_responses(responses: List[Dict]) -> Dict[str, float]
             in_amt = float(data["inAmount"])
             out_amt = float(data["outAmount"])
 
-            if in_mint == strategy_config.SOL_MINT and out_amt > 0:
+            if in_mint == request_config.SOL_MINT and out_amt > 0:
                 # 1 SOL = ? other_token
                 price = 1 / (out_amt / in_amt)  # other_token/SOL → SOL/other_token
                 price_map[out_mint] = price
-            elif out_mint == strategy_config.SOL_MINT and in_amt > 0:
+            elif out_mint == request_config.SOL_MINT and in_amt > 0:
 
                 # 1 token = ? SOL
                 price = out_amt / in_amt
@@ -158,7 +175,7 @@ def generate_price_map_from_responses(responses: List[Dict]) -> Dict[str, float]
 
 
 # Legacy synchronous function for backward compatibility
-def get_quote_pair(input_mint, output_mint, amount=strategy_config.DEFAULT_TX_AMOUNT, input_symbol=None, output_symbol=None):
+def get_quote_pair(input_mint, output_mint, amount=request_config.DEFAULT_TX_AMOUNT, input_symbol=None, output_symbol=None):
     """
     Synchronous wrapper for the async fetch_quote function
     For backward compatibility with existing code
@@ -177,7 +194,7 @@ def get_quote_pair(input_mint, output_mint, amount=strategy_config.DEFAULT_TX_AM
                     price_ratio=price_ratio,
                     weight=-
                     math.log(price_ratio) if price_ratio > 0 else float('inf'),
-                    slippage_bps=strategy_config.DEFAULT_SLIPPAGE_BPS,
+                    slippage_bps=request_config.DEFAULT_SLIPPAGE_BPS,
                     platform_fee=0.0025,
                     price_impact_pct=float(quote.get("priceImpactPct", 0.02)),
                     total_fee=0.003

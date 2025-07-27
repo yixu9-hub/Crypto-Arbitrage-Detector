@@ -1,7 +1,7 @@
 import asyncio
 import json
 import os
-from typing import List, Optional, Dict
+from typing import List, Dict
 from datetime import datetime, timedelta
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo
 
