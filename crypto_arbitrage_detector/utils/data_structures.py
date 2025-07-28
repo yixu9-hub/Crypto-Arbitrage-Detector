@@ -44,7 +44,7 @@ class EdgePairs:
     platform_fee: float  # from quote api platformFee
     price_impact_pct: float  # from quote api priceImpactPct
     total_fee: float  # calculated from quote api routePlan
-    gas_fee: int  # gas fee in lamports, default to 5000
+    gas_fee: int  # gas fee in lamports, default to 25000
 
 
 @dataclass

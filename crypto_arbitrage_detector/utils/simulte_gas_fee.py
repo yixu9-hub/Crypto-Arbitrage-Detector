@@ -1,48 +1,32 @@
 import requests
+import aiohttp
 import json
 from crypto_arbitrage_detector.configs.request_config import jupiter_swap_api, solana_rpc_api
 
-def fetch_swap_transaction(quote_response, user_pubkey = jupiter_swap_api["user_pubkey"]):
-    """    
-    Fetch the swap transaction from Jupiter API based on the quote response.
-    Args:
-        quote_response (dict): The response from the Jupiter quote API containing swap details.
-        user_pubkey (str): The public key of the user initiating the swap.
-    Returns:
-        dict: The swap transaction data.
-    Raises:
-        Exception: If the swap transaction cannot be fetched or is not present in the response.
-    """
+async def fetch_swap_transaction(quote_response, user_pubkey=jupiter_swap_api["user_pubkey"]):
+    """Fetch the swap transaction from Jupiter API based on the quote response."""
     url = jupiter_swap_api["base_url"]
     headers = jupiter_swap_api["headers"]
     payload = {
         "userPublicKey": user_pubkey,
         "quoteResponse": quote_response,
+        "simulate": True,
         "prioritizationFeeLamports": None,
         "dynamicComputeUnitLimit": True
     }
 
-    res = requests.post(url, headers=headers, json=payload)
-    result = res.json()
-    tx = result.get("swapTransaction", None)
-    if not tx:
-        raise Exception("Failed to get swapTransaction: " + json.dumps(result, indent=2))
-    return tx
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=payload) as res:
+            result = await res.json()
+            tx = result.get("swapTransaction", None)
+            if not tx:
+                raise Exception("Failed to get swapTransaction: " + json.dumps(result, indent=2))
+            return tx
 
 
-def simulate_gas_fee(base64_tx: str, unit_price_lamport: float = solana_rpc_api["compute unit price"], base_fee: int = solana_rpc_api["base_fee"]):
-    
-    """    
-    Fetch the swap transaction from Jupiter API based on the quote response.
-    Args:
-        base64_tx (str): The base64 encoded transaction to simulate.
-        unit_price_lamport (float): The price of compute units in lamports.
-        base_fee (int): The base fee in lamports.
-    Returns:
-        int: The total fee in lamports for the simulated transaction.
-    Raises:
-        Exception: If the simulation fails or the result is not found.
-    """
+
+async def simulate_gas_fee(base64_tx: str, unit_price_lamport: float = solana_rpc_api["unit_price"], base_fee: int = solana_rpc_api["base_fee"]):
+    """Simulate the gas fee for a transaction using Solana RPC."""
     url = solana_rpc_api["base_url"]
     headers = solana_rpc_api["headers"]
     body = {
@@ -59,13 +43,13 @@ def simulate_gas_fee(base64_tx: str, unit_price_lamport: float = solana_rpc_api[
         ]
     }
 
-    res = requests.post(url, headers=headers, json=body)
-    result = res.json()
-    
-    try:
-        units = result["result"]["value"]["unitsConsumed"]
-        total_fee = base_fee + units * unit_price_lamport
-        return int(total_fee)
-    except Exception as e:
-        print("Simulation failed or unitsConsumed not found:")
-        print(json.dumps(result, indent=2))
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=body) as res:
+            result = await res.json()
+
+            try:
+                units = result["result"]["value"]["unitsConsumed"]
+                total_fee = base_fee + units * unit_price_lamport
+                return int(total_fee)
+            except Exception as e:
+                raise Exception(f"Failed to simulate gas fee: {e} | Response: {json.dumps(result, indent=2)}")

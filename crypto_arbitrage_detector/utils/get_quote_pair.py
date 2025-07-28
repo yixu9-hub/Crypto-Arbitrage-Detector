@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo, EdgePairs
 from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api, scraper_config, solana_rpc_api
 from crypto_arbitrage_detector.utils.simulte_gas_fee import fetch_swap_transaction, simulate_gas_fee
+from crypto_arbitrage_detector.utils.enrich_gas_fee import enrich_responses_with_gas_fee
 
 import math
 
@@ -86,6 +87,7 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
 
     # execute all requests concurrently
         responses = await asyncio.gather(*tasks)
+        responses = await enrich_responses_with_gas_fee(responses)
     
     # generate a price map in order to calculate the total_fee in SOL
     price_map = generate_price_map_from_responses(responses)
@@ -117,19 +119,11 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
                         total_fee_sol += fee * price_in_sol
               
                 # Handle platform fee if return null
-                platform_fee_info = data.get("platformFee"),
+                platform_fee_info = data.get("platformFee")
                 if isinstance(platform_fee_info, dict):
                     platform_fee = float(platform_fee_info.get("amount", 0))
                 else:
                     platform_fee = 0.0
-                
-                tx = jupiter_quote_api.get("fetch_swap_transaction", False)
-                if tx:
-                    # Simulate gas fee if enabled
-                    gas_fee = await simulate_gas_fee(tx)
-                else:
-                    gas_fee = solana_rpc_api["base_fee"]
-
 
                 # Create EdgePairs object
                 edge = EdgePairs(
@@ -142,7 +136,7 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
                     platform_fee=platform_fee if platform_fee is not None else 0.0,
                     price_impact_pct=float(data.get("priceImpactPct", 0.0)),
                     total_fee=total_fee_sol,
-                    gas_fee=gas_fee  # gas fee in lamports
+                    gas_fee=data["gasFee"]  # gas fee in lamports
                 )
                 edge_pairs.append(edge)
             except Exception as e:
