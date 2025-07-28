@@ -1,16 +1,20 @@
 import asyncio
 import json
 import os
+import sys
 from typing import List, Optional, Dict
 from datetime import datetime, timedelta
-from crypto_arbitrage_detector.utils.data_structures import TokenInfo
+# Add the parent directory to the path to import data_structures
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'utils')))
+from data_structures import TokenInfo
+
 
 class JupiterAPIClient:
     def __init__(self, token_file_path: str = "data/jupiter_tokens.json"):
         self.token_file_path = token_file_path
         self.tokens_cache = []
-    
-    def fetch_token_list(self, max_age_hours: int = 24) -> List[TokenInfo]:
+
+    def fetch_token_list(self, max_age_hours: int = 7*24) -> List[TokenInfo]:
         """Load token list from local JSON file with freshness check"""
         
         # Check if file exists and is fresh
@@ -23,13 +27,6 @@ class JupiterAPIClient:
             with open(self.token_file_path, 'r', encoding='utf-8') as file:
                 file_data = json.load(file)
             
-            # Handle different file formats
-            # if isinstance(file_data, list):
-            #     # Old format: direct token list
-            #     tokens_data = file_data
-            #     metadata = None
-            # else:
-                # New format: with metadata
                 tokens_data = file_data.get('tokens', [])
                 metadata = file_data.get('metadata', {})
             
@@ -138,11 +135,11 @@ def main():
         print("Please run: python scripts/download_tokens.py")
         return {}
     
-    print(f"📊 Token file: {file_info['token_count']} tokens, "
+    print(f"Token file: {file_info['token_count']} tokens, "
             f"{file_info['size_mb']:.1f}MB")
     
     # Step 1: Load tokens from file
-    print("📋 Step 1: Loading tokens from file...")
+    print("Step 1: Loading tokens from file...")
     all_tokens = jupiter_client.fetch_token_list()
     
     if not all_tokens:

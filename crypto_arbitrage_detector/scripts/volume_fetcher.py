@@ -7,7 +7,7 @@ import pickle
 from typing import List, Dict
 from collections import defaultdict
 from dataclasses import dataclass
-from crypto_arbitrage_detector.utils.data_structures import TokenInfo
+from utils.data_structures import TokenInfo
 from jupiter_client import JupiterAPIClient
 from datetime import datetime, timedelta
 

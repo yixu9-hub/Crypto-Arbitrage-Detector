@@ -1,10 +1,13 @@
 import pickle
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from typing import List
 from datetime import datetime, timedelta
-from crypto_arbitrage_detector.utils.data_structures import TokenInfo
+
+# Add the parent directory to the path to import data_structures
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'utils')))
+
+from data_structures import TokenInfo
 
 class TokenLoader:
     def __init__(self, filename: str = "data/enriched_tokens.pkl"):
@@ -43,12 +46,13 @@ class TokenLoader:
             
         except:
             return False
+
 def main():
     # Loading
     loaded_tokens = TokenLoader().load_tokens(filename="data/enriched_tokens.pkl")
     if loaded_tokens is not None:
         for winner in loaded_tokens:
-            print(f" {winner.volume_rank:2d}. {winner.symbol:10s} -{winner.creation_date} - ${winner.volume_24h:>12,.0f}")
+            print(f" {winner.volume_rank:2d}. {winner.symbol:10s} -{winner.address} - ${winner.volume_24h:>12,.0f}")
 
 if __name__ == "__main__":
     main()

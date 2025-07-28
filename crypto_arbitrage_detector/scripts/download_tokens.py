@@ -3,6 +3,7 @@ import json
 import os
 from datetime import datetime
 
+
 class TokenDownloader:
     def __init__(self):
         self.jupiter_url = 'https://cache.jup.ag/tokens'

@@ -22,7 +22,7 @@ from arbitrage_test_data import arbitrage_test_edges, balanced_test_edges
 async def retrive_edges():
     """Retrieve edges from the test data."""
     # 读取真实数据用于测试
-    with open("data/enriched_tokens.pkl", "rb") as f:
+    with open("../data/enriched_tokens.pkl", "rb") as f:
         TokenLists: List[TokenInfo] = pickle.load(f)
     print(f"✅ Loaded {len(TokenLists)} tokens from pickle file\n")
     
@@ -103,7 +103,7 @@ def test_individual_algorithms():
     """分别测试各个算法组件"""
     print("\n🔬 算法组件单独测试")
     print("="*60)
-    
+    edges = asyncio.run(retrive_edges())
     graph = build_graph_from_edge_lists(edges)
     detector = IntegratedArbitrageDetector(min_profit_threshold=0.005)
     
