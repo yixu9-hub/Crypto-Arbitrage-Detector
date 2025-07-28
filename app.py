@@ -40,6 +40,11 @@ if 'tokens_loaded' not in st.session_state:
     st.session_state.tokens_loaded = False
 if 'token_error' not in st.session_state:
     st.session_state.token_error = None
+if 'edges' not in st.session_state:
+    st.session_state.edges = None
+if 'graph' not in st.session_state:
+    st.session_state.graph = None
+
 
 # Custom CSS for better styling
 st.markdown("""
@@ -74,120 +79,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-class ArbitrageDetector:
-    def __init__(self):
-        self.jupiter_tokens_url = "https://cache.jup.ag/tokens"
-        self.jupiter_quote_url = "https://quote-api.jup.ag/v6/quote"
-        self.token_list = {}
-        self.price_graph = {}
-        
-    async def fetch_token_list(self):
-        """Fetch available tokens from Jupiter API"""
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(self.jupiter_tokens_url) as response:
-                    if response.status == 200:
-                        tokens = await response.json()
-                        self.token_list = {token['address']: token for token in tokens}
-                        return True
-        except Exception as e:
-            st.error(f"Error fetching token list: {str(e)}")
-        return False
-    
-    async def get_quote(self, input_mint: str, output_mint: str, amount: int):
-        """Get quote for token swap"""
-        try:
-            params = {
-                'inputMint': input_mint,
-                'outputMint': output_mint,
-                'amount': amount,
-                'slippageBps': 50  # 0.5% slippage
-            }
-            async with aiohttp.ClientSession() as session:
-                async with session.get(self.jupiter_quote_url, params=params) as response:
-                    if response.status == 200:
-                        quote_data = await response.json()
-                        return quote_data
-        except Exception as e:
-            st.error(f"Error getting quote: {str(e)}")
-        return None
-    
-    def bellman_ford_arbitrage(self, graph: Dict, start_token: str, min_profit_threshold: float = 0.01):
-        """
-        Modified Bellman-Ford algorithm to detect negative cycles (arbitrage opportunities)
-        Returns: List of arbitrage cycles found
-        """
-        # Convert to log prices for additive property
-        log_graph = {}
-        for token_a in graph:
-            log_graph[token_a] = {}
-            for token_b in graph[token_a]:
-                if graph[token_a][token_b] > 0:
-                    log_graph[token_a][token_b] = -np.log(graph[token_a][token_b])
-                else:
-                    log_graph[token_a][token_b] = float('inf')
-        
-        tokens = list(log_graph.keys())
-        distances = {token: float('inf') for token in tokens}
-        predecessors = {token: None for token in tokens}
-        distances[start_token] = 0
-        
-        # Relax edges V-1 times
-        for _ in range(len(tokens) - 1):
-            for token_a in log_graph:
-                for token_b in log_graph[token_a]:
-                    if distances[token_a] + log_graph[token_a][token_b] < distances[token_b]:
-                        distances[token_b] = distances[token_a] + log_graph[token_a][token_b]
-                        predecessors[token_b] = token_a
-        
-        # Check for negative cycles
-        arbitrage_cycles = []
-        for token_a in log_graph:
-            for token_b in log_graph[token_a]:
-                if distances[token_a] + log_graph[token_a][token_b] < distances[token_b]:
-                    # Negative cycle detected, reconstruct the cycle
-                    cycle = self.reconstruct_cycle(predecessors, token_b, graph)
-                    if cycle and self.calculate_cycle_profit(cycle, graph) > min_profit_threshold:
-                        arbitrage_cycles.append(cycle)
-        
-        return arbitrage_cycles
-    
-    def reconstruct_cycle(self, predecessors: Dict, start_token: str, graph: Dict):
-        """Reconstruct arbitrage cycle from predecessors"""
-        cycle = []
-        current = start_token
-        visited = set()
-        
-        while current not in visited:
-            visited.add(current)
-            cycle.append(current)
-            current = predecessors.get(current)
-            if current is None:
-                break
-        
-        if current in visited:
-            cycle_start_idx = cycle.index(current)
-            return cycle[cycle_start_idx:]
-        
-        return None
-    
-    def calculate_cycle_profit(self, cycle: List[str], graph: Dict):
-        """Calculate expected profit from an arbitrage cycle"""
-        if len(cycle) < 2:
-            return 0
-        
-        total_rate = 1.0
-        for i in range(len(cycle)):
-            current_token = cycle[i]
-            next_token = cycle[(i + 1) % len(cycle)]
-            if current_token in graph and next_token in graph[current_token]:
-                total_rate *= graph[current_token][next_token]
-        
-        return total_rate - 1.0
-
-# Initialize the arbitrage detector if not already done
-if st.session_state.detector is None:
-    st.session_state.detector = ArbitrageDetector()
 
 # Check token file status
 jupiter_ok, enriched_ok, jupiter_status, enriched_status = check_token_file()
@@ -321,22 +212,112 @@ selected_tokens = st.sidebar.multiselect(
     default=popular_tokens[:10]
 )
 
-edges = asyncio.run(retrive_edges())
-G = build_graph_from_edge_lists(edges)
-detector = IntegratedArbitrageDetector(min_profit_threshold, max_hops, base_amount)
+# Initialize the arbitrage detector and graph if not already done
+if st.session_state.detector is None:
+    st.session_state.detector = IntegratedArbitrageDetector(min_profit_threshold, max_hops, base_amount)
+detector = st.session_state.detector
+
+# Add a refresh button in sidebar
+if st.sidebar.button("🔄 Refresh Quote Data"):
+    st.session_state.edges = None
+    st.session_state.graph = None
+    st.rerun()
+
+# ARTIFICIAL DATA FOR TESTING - Creates a clear arbitrage opportunity
+if st.session_state.edges is None:
+    from crypto_arbitrage_detector.utils.data_structures import EdgePairs
+    
+    # Create artificial edges that form a profitable arbitrage cycle
+    # Cycle: SOL -> USDC -> USDT -> SOL (profitable)
+    st.session_state.edges = [
+        # SOL -> USDC (1 SOL = 0.90 USDC) - Moderate cost
+        EdgePairs(
+            from_token="So11111111111111111111111111111111111111112",  # SOL
+            to_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+            price_ratio=0.90,  # 1 SOL = 0.90 USDC
+            weight=0.10,  # Positive weight (cost)
+            slippage_bps=50,
+            platform_fee=0.001,
+            price_impact_pct=0.5,
+            total_fee=0.002
+        ),
+        # USDC -> USDT (1 USDC = 1.05 USDT) - Moderate profit
+        EdgePairs(
+            from_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+            to_token="Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",  # USDT
+            price_ratio=1.05,  # 1 USDC = 1.05 USDT
+            weight=-0.05,  # Negative weight (profit)
+            slippage_bps=30,
+            platform_fee=0.0005,
+            price_impact_pct=0.2,
+            total_fee=0.001
+        ),
+        # USDT -> SOL (1 USDT = 1.20 SOL) - Large profit
+        EdgePairs(
+            from_token="Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",  # USDT
+            to_token="So11111111111111111111111111111111111111112",  # SOL
+            price_ratio=1.20,  # 1 USDT = 1.20 SOL
+            weight=-0.15,  # Large negative weight (profit)
+            slippage_bps=40,
+            platform_fee=0.001,
+            price_impact_pct=0.3,
+            total_fee=0.0015
+        ),
+        # Direct USDC -> SOL (1 USDC = 1.15 SOL) - Direct large profit
+        EdgePairs(
+            from_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+            to_token="So11111111111111111111111111111111111111112",  # SOL
+            price_ratio=1.15,  # 1 USDC = 1.15 SOL
+            weight=-0.20,  # Large negative weight (profit)
+            slippage_bps=45,
+            platform_fee=0.0015,
+            price_impact_pct=0.4,
+            total_fee=0.002
+        ),
+        # Additional edges to create more opportunities
+        # SOL -> mSOL (1 SOL = 0.95 mSOL)
+        EdgePairs(
+            from_token="So11111111111111111111111111111111111111112",  # SOL
+            to_token="mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",  # mSOL
+            price_ratio=0.95,
+            weight=0.05,
+            slippage_bps=60,
+            platform_fee=0.002,
+            price_impact_pct=0.8,
+            total_fee=0.003
+        ),
+        # mSOL -> USDC (1 mSOL = 0.90 USDC)
+        EdgePairs(
+            from_token="mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",  # mSOL
+            to_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+            price_ratio=0.90,
+            weight=0.10,
+            slippage_bps=70,
+            platform_fee=0.0025,
+            price_impact_pct=1.0,
+            total_fee=0.004
+        )
+    ]
+
+# REAL DATA (commented out for testing):
+# if st.session_state.edges is None:
+#     st.session_state.edges = asyncio.run(retrive_edges())
+
+if st.session_state.graph is None:
+    st.session_state.graph = build_graph_from_edge_lists(st.session_state.edges)
+
+
+G = st.session_state.graph
 
 # Control buttons
 col1, col2 = st.sidebar.columns(2)
 with col1:
-    start_detection = st.button("▶️ Start", type="primary")
+    if st.button("▶️ Start", type="primary"):
+        results = st.session_state.detector.detect_arbitrage(st.session_state.graph, None, enable_bellman_ford, enable_triangle, enable_two_hop)
+        st.session_state.arbitrage_results = results
+        st.session_state.last_update = datetime.now()
 with col2:
-    stop_detection = st.button("⏹️ Stop")
-
-if start_detection:
-    st.session_state.is_running = True
-    st.session_state.arbitrage_results = detector.detect_arbitrage(G, None, enable_bellman_ford, enable_triangle, enable_two_hop)
-if stop_detection:
-    st.session_state.is_running = False
+    stop_detection = st.button("⏹️ Stop")   
 
 # Status indicator
 status_color = "status-running" if st.session_state.is_running else "status-stopped"
@@ -574,8 +555,8 @@ Jupiter Quote: https://quote-api.jup.ag/v6/quote
 # Auto-refresh when running
 if st.session_state.is_running:
     # Simulate finding arbitrage opportunities
-    if st.button("🔄 Refresh Data") or len(st.session_state.arbitrage_results) == 0:
-        results = detector.detect_arbitrage(G, None, enable_bellman_ford, enable_triangle, enable_two_hop )
+    if st.button("🔄 Refresh Data"):
+        results = st.session_state.detector.detect_arbitrage(st.session_state.graph, None, enable_bellman_ford, enable_triangle, enable_two_hop )
         # # Generate sample arbitrage opportunity for demonstration
         # sample_path = selected_tokens[:3] if len(selected_tokens) >= 3 else popular_tokens[:3]
         # sample_opportunity = ArbitrageOpportunity(
