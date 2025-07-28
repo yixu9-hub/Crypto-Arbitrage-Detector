@@ -27,12 +27,13 @@ jupiter_quote_api = {
     "default_slippage_bps": 100,             # 1% slippage
     "default_tx_amount": 1000000000,          # 1 SOL in lamports
     "sol_mint": "So11111111111111111111111111111111111111112",
-    'headers': {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "Accept": "application/json",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Origin": "https://jup.ag",
-        "Referer": "https://jup.ag/"
+    "headers": {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-CA,en-US;q=0.9,en;q=0.8",
+    "Origin": "https://jup.ag",
+    "Referer": "https://jup.ag/",
+    "Connection": "keep-alive"
     }
 }
 
@@ -41,7 +42,7 @@ jupiter_swap_api = {
     "base_url": "https://quote-api.jup.ag/v6/swap",
     "headers": {"Content-Type": "application/json"},
     "user_pubkey": "2ZwR1odHjrohqrTma9us4cHfGQcbCkVSnkJZo1MeDPU1",
-    "max_request": 50,  # Maximum concurrent requests
+    "max_request": 40,  # Maximum concurrent requests
 }
 
 # Solana RPC API configuration for simulate_gas_fee and enrich_gas_fee
