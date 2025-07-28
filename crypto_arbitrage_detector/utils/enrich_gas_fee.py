@@ -1,6 +1,7 @@
 import asyncio
+import base64
 from typing import List, Dict
-from crypto_arbitrage_detector.utils.simulte_gas_fee import fetch_swap_transaction, simulate_gas_fee
+from crypto_arbitrage_detector.utils.simulate_gas_fee import fetch_swap_transaction, simulate_gas_fee
 from crypto_arbitrage_detector.configs.request_config import solana_rpc_api, jupiter_swap_api
 
 # main procedure: quote responses → enrich with tx + gas
@@ -16,7 +17,7 @@ async def enrich_responses_with_gas_fee(responses: List[Dict]) -> List[Dict]:
     enriched = []
 
     # Concurrently build swapTransaction
-    for resp in responses:
+    for resp in responses[:jupiter_swap_api["max_request"]]:
         tx_tasks.append(fetch_swap_transaction(resp))
 
     tx_results = await asyncio.gather(*tx_tasks, return_exceptions=True)
@@ -27,7 +28,7 @@ async def enrich_responses_with_gas_fee(responses: List[Dict]) -> List[Dict]:
         resp = responses[i]
         if isinstance(tx, Exception):
             print(f"Fetch tx failed for response {i}: {tx}")
-            resp["gasFee"] = solana_rpc_api["fallback_fee"]
+            resp["gasFee"] = estimate_gas_fee_by_route(resp)
         else:
             simulate_tasks.append(safe_simulate_gas_fee(tx))
             enriched.append({"response": resp, "tx": tx})
@@ -42,10 +43,13 @@ async def enrich_responses_with_gas_fee(responses: List[Dict]) -> List[Dict]:
         fee = gas_fees[gas_index]
         if isinstance(fee, Exception):
             print(f"Simulation failed for tx: {fee}")
-            resp["gasFee"] = solana_rpc_api["fallback_fee"]
+            resp["gasFee"] = estimate_gas_fee_by_complexity(item["tx"])
         else:
             resp["gasFee"] = fee
         gas_index += 1
+    
+    for resp in responses[jupiter_swap_api["max_request"]:]:
+        resp["gasFee"] = estimate_gas_fee_by_route(resp)
 
     return responses
 
@@ -77,8 +81,67 @@ async def safe_simulate_gas_fee(base64_tx: str, unit_price: float = solana_rpc_a
     """
     try:
         if is_too_large(base64_tx):
-            return int(base_fee + fallback_units * unit_price)
-        return await simulate_gas_fee(base64_tx, unit_price, base_fee)
+            return estimate_gas_fee_by_complexity(base64_tx)
+        try:
+            # Simulate gas fee using the Solana RPC API
+            gas = await simulate_gas_fee(base64_tx, unit_price, base_fee)
+            return gas
+        except Exception as e:
+            print(f"Simulation failed: {e}")
+            return estimate_gas_fee_by_complexity(base64_tx)
     except Exception as e:
         print(f"Simulation failed: {e}")
-        return int(base_fee + fallback_units * unit_price)
+        return estimate_gas_fee_by_complexity(base64_tx)
+
+
+
+def estimate_gas_fee_by_complexity(base64_tx: str):
+    """
+    Estimate gas fee based on transaction complexity when URL fetch fails.
+    
+    Args:
+        base64_tx (str): The base64 encoded transaction to analyze.
+    
+    Returns:
+        int: Estimated total gas fee in lamports.
+    """
+    try:
+        # Decode the transaction to analyze its complexity
+        tx_bytes = base64.b64decode(base64_tx)
+        base_fee = solana_rpc_api["base_fee"]
+
+        tx_size = len(tx_bytes)
+        
+        if tx_size < 500:
+            estimated_units = 2000
+        elif tx_size < 1000:
+            estimated_units = 15000
+        elif tx_size < 1500:
+            estimated_units = 35000
+        else:
+            estimated_units = 50000
+        
+        unit_price = solana_rpc_api["unit_price"]
+        compute_fee = int(estimated_units * unit_price)
+        total_fee = base_fee + compute_fee
+
+        return total_fee
+        
+    except Exception as e:
+        base_fee = solana_rpc_api["base_fee"]
+        conservative_estimate = base_fee + 2000
+        return conservative_estimate
+
+
+def estimate_gas_fee_by_route(response):
+    """
+    Estimate gas fee based on the number of hops in the route.
+    
+    Args:
+        response (dict): The response from the Jupiter API containing route details.
+    
+    Returns:
+        int: Estimated gas fee in lamports.
+    """
+    route_hops = len(response["routePlan"])
+    return 5000 + 500 * max(0, route_hops - 1)  # Base fee + variable based on hops

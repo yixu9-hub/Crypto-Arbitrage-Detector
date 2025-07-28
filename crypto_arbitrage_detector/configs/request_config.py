@@ -40,7 +40,8 @@ jupiter_quote_api = {
 jupiter_swap_api = {
     "base_url": "https://quote-api.jup.ag/v6/swap",
     "headers": {"Content-Type": "application/json"},
-    "user_pubkey": "2ZwR1odHjrohqrTma9us4cHfGQcbCkVSnkJZo1MeDPU1"
+    "user_pubkey": "2ZwR1odHjrohqrTma9us4cHfGQcbCkVSnkJZo1MeDPU1",
+    "max_request": 50,  # Maximum concurrent requests
 }
 
 # Solana RPC API configuration for simulate_gas_fee and enrich_gas_fee

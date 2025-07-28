@@ -30,8 +30,8 @@ async def test_edge_pairs() -> List[EdgePairs]:
         print(f"Weight (-log):   {edge.weight:.6f}")
         print(f"Slippage BPS:    {edge.slippage_bps}")
         print(f"Price Impact %:  {edge.price_impact_pct:.4f}")
-        print(f"Platform Fee:    {edge.platform_fee:.6f}")
-        print(f"Total Fee (SOL): {edge.total_fee:.8f}")
+        print(f"Platform Fee:    {edge.platform_fee:.1f}")
+        print(f"Total Fee (SOL): {edge.total_fee:.1f}")
         print(f"Gas Fee (lamports): {edge.gas_fee}\n")
 
     return edges

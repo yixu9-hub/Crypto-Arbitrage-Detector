@@ -7,7 +7,7 @@ from typing import List, Dict
 from dataclasses import dataclass, field
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo, EdgePairs
 from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api, scraper_config, solana_rpc_api
-from crypto_arbitrage_detector.utils.simulte_gas_fee import fetch_swap_transaction, simulate_gas_fee
+from crypto_arbitrage_detector.utils.simulate_gas_fee import fetch_swap_transaction, simulate_gas_fee
 from crypto_arbitrage_detector.utils.enrich_gas_fee import enrich_responses_with_gas_fee
 
 import math
