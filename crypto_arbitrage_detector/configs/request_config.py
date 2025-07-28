@@ -42,9 +42,9 @@ jupiter_quote_api = {
 
 # Jupiter swap API configuration for simulate_gas_fee
 jupiter_swap_api = {
-    "base_url": "https://swap-api.jup.ag/v6/swap",
+    "base_url": "https://quote-api.jup.ag/v6/swap",
     "headers": {"Content-Type": "application/json"},
-    "user_pubkey": "aJfGbGCcXqQ4UYL3rUSseg3df9e6ccLQQPAV2YLH2M3"
+    "user_pubkey": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
 }
 
 # Solana RPC API configuration for simulate_gas_fee
