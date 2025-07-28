@@ -8,7 +8,7 @@ import sys
 import os
 # Add project path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from typing import List, Dict, Optional
+from typing import List, Optional
 from utils.data_structures import ArbitrageOpportunity
 
 
@@ -237,22 +237,23 @@ class BellmanFordArbitrage:
 
             base_profit_ratio = math.exp(-adjusted_weight) - 1
 
-            total_all_fees = total_fee + platform_fees
+            #total_all_fees = total_fee + platform_fees
 
-            actual_profit_ratio = base_profit_ratio - (total_all_fees / self.base_amount)
+            #actual_profit_ratio = base_profit_ratio - (total_all_fees / self.base_amount)
+            actual_profit_ratio = base_profit_ratio # 不考虑交易费用，jupiter quote已经扣除了fee的费用返回outAmount
             
             # Estimated profit (SOL)
-            estimated_profit = self.base_amount * actual_profit_ratio
+            estimated_profit = self.base_amount * actual_profit_ratio 
 
             slippage_risk = min(1.0, total_slippage * 10)  # 滑点风险因子
             price_impact_risk = min(1.0, total_price_impact / 10)  # 价格影响风险因子
             
             # Confidence score calculation
-            if total_all_fees > 0:
-                profit_fee_ratio = max(0, estimated_profit / total_all_fees)
-                base_confidence = min(1.0, profit_fee_ratio / 5)  # 利润费用比
-            else:
-                base_confidence = 0.5
+            #if total_all_fees > 0:
+            #    profit_fee_ratio = max(0, estimated_profit / total_all_fees)
+            #    base_confidence = min(1.0, profit_fee_ratio / 5)  # 利润费用比
+            #else:
+            base_confidence = 0.5
  
             confidence_score = base_confidence * (1 - slippage_risk) * (1 - price_impact_risk)
             confidence_score = max(0.0, min(1.0, confidence_score))
@@ -265,7 +266,7 @@ class BellmanFordArbitrage:
                 path_symbols=path_symbols,
                 profit_ratio=actual_profit_ratio,
                 total_weight=adjusted_weight,
-                total_fee=total_all_fees,
+                total_fee=0.0,  # 交易费用,设置为0，因为当前jupiter quote已经扣除了fee的费用返回outAmount
                 hop_count=len(path) - 1,
                 confidence_score=confidence_score,
                 estimated_profit_sol=estimated_profit

@@ -113,8 +113,8 @@ class TriangleArbitrage:
 
             total_all_fees = total_fee + platform_fees
 
-            actual_profit_ratio = base_profit_ratio - \
-                (total_all_fees / self.base_amount)
+            # actual_profit_ratio = base_profit_ratio - \(total_all_fees / self.base_amount)
+            actual_profit_ratio = base_profit_ratio  # 不考虑交易费用，jupiter quote已经扣除了fee的费用返回outAmount
 
             # Estimated profit (SOL)
             estimated_profit = self.base_amount * actual_profit_ratio
@@ -142,7 +142,7 @@ class TriangleArbitrage:
                 path_symbols=path_symbols,
                 profit_ratio=actual_profit_ratio,
                 total_weight=adjusted_weight,
-                total_fee=total_all_fees,
+                total_fee=0.0,  # 交易费用,设置为0，因为当前jupiter quote已经扣除了fee的费用返回outAmount
                 hop_count=len(path) - 1,
                 confidence_score=confidence_score,
                 estimated_profit_sol=estimated_profit

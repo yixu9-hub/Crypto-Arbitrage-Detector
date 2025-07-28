@@ -6,11 +6,10 @@ import aiohttp
 import pickle
 from typing import List, Dict
 from collections import defaultdict
-from dataclasses import dataclass
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo
 from jupiter_client import JupiterAPIClient
 from crypto_arbitrage_detector.configs.request_config import dexscreener_api, token_ranking
-from datetime import datetime, timedelta
+from datetime import datetime
 from crypto_arbitrage_detector.utils.data_structures import VolumeRanking
 
 class MassVolumeRanker:
@@ -263,9 +262,8 @@ class MassVolumeRanker:
                 print(f"TokenInfo data saved to {filename}")
         except Exception as e:
             print(f"Error saving tokens: {e}")
-    
 
-    
+
 async def main(top_n_tokens: int = token_ranking["top_n"]) -> Dict: #change to 10 for testing
     """Ultra-optimized pipeline: rank all, enrich only winners"""
     
