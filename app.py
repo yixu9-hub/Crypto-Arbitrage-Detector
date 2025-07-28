@@ -323,6 +323,7 @@ selected_tokens = st.sidebar.multiselect(
 
 edges = asyncio.run(retrive_edges())
 G = build_graph_from_edge_lists(edges)
+detector = IntegratedArbitrageDetector(min_profit_threshold, max_hops, base_amount)
 
 # Control buttons
 col1, col2 = st.sidebar.columns(2)
@@ -333,8 +334,7 @@ with col2:
 
 if start_detection:
     st.session_state.is_running = True
-    detector = IntegratedArbitrageDetector(min_profit_threshold, max_hops, base_amount)
-    st.session_state.arbitrage_results = detector.detect_arbitrage(G, None, enable_bellman_ford, enable_triangle, enable_two_hop )
+    st.session_state.arbitrage_results = detector.detect_arbitrage(G, None, enable_bellman_ford, enable_triangle, enable_two_hop)
 if stop_detection:
     st.session_state.is_running = False
 
@@ -352,11 +352,9 @@ tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "🔍 Arbitrage Opportunitie
 with tab1:
     # Dashboard metrics
     col1, col2, col3, col4 = st.columns(4)
-    
     with col1:
+        opportunities_found = 0
         if st.session_state.arbitrage_results:
-            opportunities_found = 0
-        else:
             for result in st.session_state.arbitrage_results:
                 if result.estimated_profit_sol > 0:
                     opportunities_found += 1
@@ -364,22 +362,15 @@ with tab1:
     
     with col2:
         if st.session_state.arbitrage_results:
-            # Handle both ArbitrageOpportunity objects and dictionaries
-            if hasattr(st.session_state.arbitrage_results[0], 'estimated_profit_sol'):
-                # ArbitrageOpportunity objects
-                max_profit = max([result.estimated_profit_sol for result in st.session_state.arbitrage_results])
-                st.metric("Max Profit Found", f"{max_profit:.4f} SOL")
-            else:
-                # Dictionary objects
-                max_profit = max([result.get('estimated_profit_sol', 0) for result in st.session_state.arbitrage_results])
-                st.metric("Max Profit Found", f"{max_profit:.4f} SOL")
+            max_profit = max([result.estimated_profit_sol for result in st.session_state.arbitrage_results])
+            st.metric("Max Profit Found", f"{max_profit:.4f} SOL")
         else:
             st.metric("Max Profit Found", "0.0000 SOL")
     
     with col3:
         avg_path_length = 0
         if st.session_state.arbitrage_results:
-            avg_path_length = np.mean([len(result['path']) for result in st.session_state.arbitrage_results])
+            avg_path_length = np.mean([len(result.path) for result in st.session_state.arbitrage_results])
         st.metric("Avg Path Length", f"{avg_path_length:.1f}")
     
     with col4:
@@ -391,11 +382,22 @@ with tab1:
     
     # Create sample data for demonstration
     if st.session_state.arbitrage_results:
-        df = pd.DataFrame(st.session_state.arbitrage_results)
-        fig = px.scatter(df, x='timestamp', y='profit_percentage', 
-                        size='trade_volume', color='path_length',
+        # Convert ArbitrageOpportunity objects to DataFrame
+        data = []
+        for i, opp in enumerate(st.session_state.arbitrage_results):
+            data.append({
+                'index': i,
+                'profit_ratio': opp.profit_ratio * 100,  # Convert to percentage
+                'estimated_profit_sol': opp.estimated_profit_sol,
+                'hop_count': opp.hop_count,
+                'confidence_score': opp.confidence_score
+            })
+        
+        df = pd.DataFrame(data)
+        fig = px.scatter(df, x='index', y='profit_ratio', 
+                        size='estimated_profit_sol', color='hop_count',
                         title="Arbitrage Opportunities Over Time",
-                        labels={'profit_percentage': 'Profit %', 'timestamp': 'Time'})
+                        labels={'profit_ratio': 'Profit %', 'index': 'Opportunity Index'})
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Start detection to see real-time arbitrage opportunities")
@@ -405,29 +407,27 @@ with tab2:
     
     if st.session_state.arbitrage_results:
         for i, opportunity in enumerate(st.session_state.arbitrage_results):
-            # Handle both ArbitrageOpportunity objects and dictionaries
-            if hasattr(opportunity, 'estimated_profit_sol'):
-                # ArbitrageOpportunity object
-                profit = opportunity.estimated_profit_sol
-                path = opportunity.path
-                total_fee = opportunity.total_fee
-            else:
-                # Dictionary object
-                profit = opportunity.get('estimated_profit_sol', 0)
-                path = opportunity.get('path', [])
-                total_fee = opportunity.get('total_fee', 0.001)
+            profit = opportunity.estimated_profit_sol
+            path = opportunity.path
+            total_fee = opportunity.total_fee
             
             with st.expander(f"Opportunity #{i+1} - {profit:.4f} SOL Profit"):
                 col1, col2 = st.columns([2, 1])
                 
                 with col1:
                     st.write("**Trading Path:**")
-                    path_str = " → ".join([f"Token_{token[:8]}..." for token in path])
-                    st.code(path_str)
+                    if path:
+                        path_str = " → ".join([f"Token_{token[:8]}..." for token in path])
+                        st.code(path_str)
+                    else:
+                        st.code("No path available")
                     
                     st.write("**Path Details:**")
-                    for j, (from_token, to_token) in enumerate(zip(path, path[1:] + [path[0]])):
-                        st.write(f"Step {j+1}: {from_token[:8]}... → {to_token[:8]}...")
+                    if len(path) > 1:
+                        for j, (from_token, to_token) in enumerate(zip(path, path[1:] + [path[0]])):
+                            st.write(f"Step {j+1}: {from_token[:8]}... → {to_token[:8]}...")
+                    else:
+                        st.write("No valid path found")
                 
                 with col2:
                     st.metric("Expected Profit", f"{profit:.4f} SOL")
@@ -556,8 +556,8 @@ with tab4:
     with col2:
         st.write("**API Endpoints:**")
         st.code("""
-            Jupiter Tokens: https://cache.jup.ag/tokens
-            Jupiter Quote: https://quote-api.jup.ag/v6/quote
+Jupiter Tokens: https://cache.jup.ag/tokens
+Jupiter Quote: https://quote-api.jup.ag/v6/quote
         """)
     
     # Log messages
@@ -575,17 +575,21 @@ with tab4:
 if st.session_state.is_running:
     # Simulate finding arbitrage opportunities
     if st.button("🔄 Refresh Data") or len(st.session_state.arbitrage_results) == 0:
-        # Generate sample arbitrage opportunity for demonstration
-        sample_opportunity = {
-            'path': selected_tokens[:3] if len(selected_tokens) >= 3 else popular_tokens[:3],
-            'profit_percentage': np.random.uniform(0.5, 3.0),
-            'timestamp': datetime.now(),
-            'trade_volume': base_amount,
-            'path_length': 3,
-            'gas_cost': np.random.uniform(0.001, 0.01)
-        }
+        results = detector.detect_arbitrage(G, None, enable_bellman_ford, enable_triangle, enable_two_hop )
+        # # Generate sample arbitrage opportunity for demonstration
+        # sample_path = selected_tokens[:3] if len(selected_tokens) >= 3 else popular_tokens[:3]
+        # sample_opportunity = ArbitrageOpportunity(
+        #     path=sample_path,
+        #     path_symbols=[f"{token[:4]}...{token[-4:]}" for token in sample_path],
+        #     profit_ratio=np.random.uniform(0.005, 0.03),
+        #     total_weight=-np.random.uniform(0.01, 0.05),
+        #     total_fee=np.random.uniform(0.001, 0.01),
+        #     hop_count=len(sample_path) - 1,
+        #     confidence_score=np.random.uniform(0.5, 0.9),
+        #     estimated_profit_sol=np.random.uniform(0.01, 0.1)
+        # )
         
-        st.session_state.arbitrage_results.append(sample_opportunity)
+        st.session_state.arbitrage_results = results
         st.session_state.last_update = datetime.now()
         st.rerun()
 

@@ -27,12 +27,20 @@ async def fetch_quote(
         "slippageBps": strategy_config.DEFAULT_SLIPPAGE_BPS
     }
     # Set headers to mimic a browser request
+    # headers = {
+    #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    #     "Accept": "application/json",
+    #     "Accept-Encoding": "gzip, deflate, br",
+    #     "Origin": "https://jup.ag",
+    #     "Referer": "https://jup.ag/"
+    # }
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "Accept": "application/json",
-        "Accept-Encoding": "gzip, deflate, br",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-CA,en-US;q=0.9,en;q=0.8",
         "Origin": "https://jup.ag",
-        "Referer": "https://jup.ag/"
+        "Referer": "https://jup.ag/",
+        "Connection": "keep-alive"
     }
 
     #async with semaphore:
