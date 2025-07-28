@@ -6,29 +6,21 @@ import aiohttp
 import pickle
 from typing import List, Dict
 from collections import defaultdict
-from dataclasses import dataclass
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo
 from jupiter_client import JupiterAPIClient
-from datetime import datetime, timedelta
-
-@dataclass
-class VolumeRanking:
-    address: str
-    symbol: str
-    volume_24h: float
-    liquidity_usd: float
-    rank: int
-    creation_date: str
+from crypto_arbitrage_detector.configs.request_config import dexscreener_api, token_ranking
+from datetime import datetime
+from crypto_arbitrage_detector.utils.data_structures import VolumeRanking
 
 class MassVolumeRanker:
     def __init__(self):
-        self.base_url = "https://api.dexscreener.com/tokens/v1/solana"
-        self.batch_size = 30 # DexScreener API limit
-        self.max_concurrent = 25 # Number of concurrents 
-        self.request_delay = 0.05 # Delay between requests
+        self.base_url = dexscreener_api["base_url"]
+        self.batch_size = dexscreener_api["batch_size"]  # DexScreener API limit
+        self.max_concurrent = dexscreener_api["max_concurrent_requests"]  # Number of concurrents 
+        self.request_delay = dexscreener_api["request_delay"]  # Delay between requests
         
     async def get_top_tokens_optimized(self, all_tokens: List[TokenInfo], 
-                                     top_n: int = 10) -> List[TokenInfo]: #change to 5 for testing!!!
+                                     top_n: int = token_ranking["top_n"]) -> List[TokenInfo]: #change to 10 as default
         """
         Get top N tokens by volume - rank first, enrich only winners
         """
@@ -61,7 +53,8 @@ class MassVolumeRanker:
         enriched_tokens = await self._enrich_winner_tokens(top_winners, jupiter_token_map)
         
         return enriched_tokens
-    
+
+
     async def _get_volume_rankings_for_all(self, all_tokens: List[TokenInfo]) -> List[VolumeRanking]:
         """Get volume rankings for all tokens - returns sorted rankings"""
         
@@ -269,10 +262,9 @@ class MassVolumeRanker:
                 print(f"TokenInfo data saved to {filename}")
         except Exception as e:
             print(f"Error saving tokens: {e}")
-    
 
-    
-async def main(top_n_tokens: int = 10) -> Dict: #change to 5 for testing!!!
+
+async def main(top_n_tokens: int = 8) -> Dict: #change to 10 for testing
     """Ultra-optimized pipeline: rank all, enrich only winners"""
     
     # Step 1: Load all Jupiter tokens

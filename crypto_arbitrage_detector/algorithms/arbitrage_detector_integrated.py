@@ -10,7 +10,7 @@ from two_hop_arbitrage_algorithm import TwoHopArbitrage
 from triangle_arbitrage_algorithm import TriangleArbitrage
 from bellman_ford_algorithm import BellmanFordArbitrage
 from utils.data_structures import ArbitrageOpportunity
-from typing import List, Dict, Tuple, Optional, Set
+from typing import List
 import networkx as nx
 
 
