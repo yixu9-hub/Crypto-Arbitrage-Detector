@@ -135,6 +135,7 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
                 edge = EdgePairs(
                     from_token=data["inputMint"],
                     to_token=data["outputMint"],
+                    out_amount=out_amount,
                     price_ratio=price_ratio,
                     weight=weight,
                     slippage_bps=data.get("slippageBps", 0),

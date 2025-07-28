@@ -25,6 +25,7 @@ async def test_edge_pairs() -> List[EdgePairs]:
         print(f"--- Pair {i + 1} ---")
         print(f"From: {edge.from_token}")
         print(f"To:   {edge.to_token}")
+        print(f"Out Amount:     {edge.out_amount:.6f}")
         print(f"Price Ratio:     {edge.price_ratio:.6f}")
         print(f"Weight (-log):   {edge.weight:.6f}")
         print(f"Slippage BPS:    {edge.slippage_bps}")

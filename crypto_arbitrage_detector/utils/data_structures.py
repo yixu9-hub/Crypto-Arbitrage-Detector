@@ -37,13 +37,14 @@ class TokenInfo:
 class EdgePairs:
     from_token: str  # from quote api inputMint
     to_token: str  # from quote api outputMint
+    out_amount: float  # from quote api outAmount
     price_ratio: float  # calculated from quote api inAmount and outAmount
     weight: float  # calculated from price_ratio
     slippage_bps: int  # from quote api slippageBps
     platform_fee: float  # from quote api platformFee
     price_impact_pct: float  # from quote api priceImpactPct
     total_fee: float  # calculated from quote api routePlan
-    gas_fee: int  # gas fee in lamports, default to 0
+    gas_fee: int  # gas fee in lamports, default to 5000
 
 
 @dataclass
