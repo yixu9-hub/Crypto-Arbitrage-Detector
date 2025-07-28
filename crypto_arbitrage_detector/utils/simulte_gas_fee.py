@@ -3,6 +3,16 @@ import json
 from crypto_arbitrage_detector.configs.request_config import jupiter_swap_api, solana_rpc_api
 
 def fetch_swap_transaction(quote_response, user_pubkey = jupiter_swap_api["user_pubkey"]):
+    """    
+    Fetch the swap transaction from Jupiter API based on the quote response.
+    Args:
+        quote_response (dict): The response from the Jupiter quote API containing swap details.
+        user_pubkey (str): The public key of the user initiating the swap.
+    Returns:
+        dict: The swap transaction data.
+    Raises:
+        Exception: If the swap transaction cannot be fetched or is not present in the response.
+    """
     url = jupiter_swap_api["base_url"]
     headers = jupiter_swap_api["headers"]
     payload = {
@@ -21,6 +31,18 @@ def fetch_swap_transaction(quote_response, user_pubkey = jupiter_swap_api["user_
 
 
 def simulate_gas_fee(base64_tx: str, unit_price_lamport: float = solana_rpc_api["compute unit price"], base_fee: int = solana_rpc_api["base_fee"]):
+    
+    """    
+    Fetch the swap transaction from Jupiter API based on the quote response.
+    Args:
+        base64_tx (str): The base64 encoded transaction to simulate.
+        unit_price_lamport (float): The price of compute units in lamports.
+        base_fee (int): The base fee in lamports.
+    Returns:
+        int: The total fee in lamports for the simulated transaction.
+    Raises:
+        Exception: If the simulation fails or the result is not found.
+    """
     url = solana_rpc_api["base_url"]
     headers = solana_rpc_api["headers"]
     body = {
@@ -47,7 +69,3 @@ def simulate_gas_fee(base64_tx: str, unit_price_lamport: float = solana_rpc_api[
     except Exception as e:
         print("Simulation failed or unitsConsumed not found:")
         print(json.dumps(result, indent=2))
-
-# 用你的base64交易和用户地址
-tx = "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAEEjNmKiZGiOtSZ+g0//wH5kEQo3+UzictY+KlLV8hjXcs44M/Xnr+1SlZsqS6cFMQc46yj9PIsxqkycxJmXT+veJjIvefX4nhY9rY+B5qreeqTHu4mG6Xtxr5udn4MN8PnBt324e51j94YQl285GzN2rYa/E2DuQ0n/r35KNihi/zamQ6EeyeeVDvPVgUO2W3Lgt9hT+CfyqHvIa11egFPCgEDAwIBAAkDZAAAAAAAAAA="
-simulate_gas_fee(tx)
