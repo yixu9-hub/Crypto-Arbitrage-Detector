@@ -7,7 +7,7 @@ from typing import List, Dict
 from dataclasses import dataclass, field
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo, EdgePairs
 from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api, scraper_config, solana_rpc_api
-from crypto_arbitrage_detector.utils.simulte_gas_fee import fetch_swap_transaction, simulate_gas_fee
+from crypto_arbitrage_detector.utils.simulate_gas_fee import fetch_swap_transaction, simulate_gas_fee
 
 import math
 
@@ -123,12 +123,20 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
                 else:
                     platform_fee = 0.0
                 
-                tx = jupiter_quote_api.get("fetch_swap_transaction", False)
-                if tx:
-                    # Simulate gas fee if enabled
-                    gas_fee = await simulate_gas_fee(tx)
-                else:
+                try:
+                    swap_tx = fetch_swap_transaction(data)
+                    gas_fee = simulate_gas_fee(swap_tx)
+                except Exception as e:
+                    # use base fee in Solana RPC API configuration
+                    print(f"Error in gas fee simulation: {e}")
                     gas_fee = solana_rpc_api["base_fee"]
+
+                # tx = jupiter_quote_api.get("fetch_swap_transaction", False)
+                # if tx:
+                #     # Simulate gas fee if enabled
+                #     gas_fee = await simulate_gas_fee(tx)
+                # else:
+                #     gas_fee = solana_rpc_api["base_fee"]
 
 
                 # Create EdgePairs object

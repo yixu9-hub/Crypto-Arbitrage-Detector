@@ -55,8 +55,8 @@ class ArbitrageOpportunity:
     total_weight: float
     total_fee: float
     hop_count: int
-    confidence_score: float  # 置信度分数 (0-1)
-    estimated_profit_sol: float  # 预估利润 (SOL)
+    confidence_score: float
+    estimated_profit_sol: float
 
     def __post_init__(self):
         if not self.hop_count:
