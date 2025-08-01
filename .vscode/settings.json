@@ -1,7 +1,8 @@
 {
-    "python.analysis.extraPaths": [
-        "./crypto-arbitrage-detector/utils",
-        "./crypto-arbitrage-detector/algorithms",
-        "./crypto-arbitrage-detector"
-    ]
+  "python.analysis.extraPaths": [
+    "./crypto-arbitrage-detector/utils",
+    "./crypto-arbitrage-detector/algorithms",
+    "./crypto-arbitrage-detector",
+    "./crypto_arbitrage_detector/utils"
+  ]
 }

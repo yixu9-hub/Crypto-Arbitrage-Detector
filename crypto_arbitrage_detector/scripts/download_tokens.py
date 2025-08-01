@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from crypto_arbitrage_detector.configs.request_config import jupiter_tokens_api
 
+
 class TokenDownloader:
     def __init__(self):
         self.jupiter_url = jupiter_tokens_api['base_url']

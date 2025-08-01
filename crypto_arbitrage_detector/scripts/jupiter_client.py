@@ -25,13 +25,6 @@ class JupiterAPIClient:
             with open(self.token_file_path, 'r', encoding='utf-8') as file:
                 file_data = json.load(file)
             
-            # Handle different file formats
-            # if isinstance(file_data, list):
-            #     # Old format: direct token list
-            #     tokens_data = file_data
-            #     metadata = None
-            # else:
-                # New format: with metadata
                 tokens_data = file_data.get('tokens', [])
                 metadata = file_data.get('metadata', {})
             
@@ -131,3 +124,29 @@ class JupiterAPIClient:
             
         except Exception as e:
             return {"exists": True, "error": str(e)}
+
+def main():
+    jupiter_client = JupiterAPIClient()
+    file_info = jupiter_client.get_file_info()
+    if not file_info["exists"]:
+        print("Token file not found!")
+        print("Please run: python scripts/download_tokens.py")
+        return {}
+    
+    print(f"Token file: {file_info['token_count']} tokens, "
+            f"{file_info['size_mb']:.1f}MB")
+    
+    # Step 1: Load tokens from file
+    print("Step 1: Loading tokens from file...")
+    all_tokens = jupiter_client.fetch_token_list()
+    
+    if not all_tokens:
+        print("No tokens loaded! Please check your token file.")
+        return {}
+    
+    print("\nSample tokens:")
+    for i, token in enumerate(all_tokens[:5]):
+        print(f"   {i+1}. {token.symbol} - {token.name}")
+
+if __name__ == "__main__":
+    main()

@@ -148,6 +148,7 @@ def visualize_graph(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8)
 
     plt.tight_layout()
     plt.show()
+    return fig
 
 
 def print_graph_statistics(G: nx.DiGraph):

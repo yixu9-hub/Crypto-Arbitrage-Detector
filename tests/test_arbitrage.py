@@ -29,7 +29,7 @@ from arbitrage_test_data import arbitrage_test_edges, balanced_test_edges
 async def retrive_edges():
     """Retrieve edges from the test data."""
     # 读取真实数据用于测试
-    with open("data/enriched_tokens.pkl", "rb") as f:
+    with open("../data/enriched_tokens.pkl", "rb") as f:
         TokenLists: List[TokenInfo] = pickle.load(f)
     print(f"✅ Loaded {len(TokenLists)} tokens from pickle file\n")
     
