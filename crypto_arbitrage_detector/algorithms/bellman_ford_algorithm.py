@@ -1,14 +1,12 @@
 '''
 Bellman-Ford Arbitrage Detection Algorithm
-多跳的负环检测套利算法, 目前允许4跳
 '''
 import networkx as nx
 import math
 import sys
 import os
-# Add project path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from typing import List, Dict, Optional
+from typing import List, Optional
 from utils.data_structures import ArbitrageOpportunity
 
 
@@ -16,16 +14,16 @@ class BellmanFordArbitrage:
     """
     Bellman-Ford negative cycle detection algorithm
     """
-    
-    def __init__(self, 
-                 min_profit_threshold: float = 0.01,
+
+    def __init__(self,
+                 min_profit_threshold: float = 0.005,  # 0.5%
                  max_hops: int = 4,
                  base_amount: float = 1.0):
         """
         Initialize algorithm
-        
+
         Args:
-            min_profit_threshold: Minimum profit threshold (0.01 = 1%)
+            min_profit_threshold: Minimum profit threshold
             max_hops: Maximum allowed hops
             base_amount: Base trading amount (SOL)
         """
@@ -33,250 +31,278 @@ class BellmanFordArbitrage:
         self.max_hops = max_hops
         self.base_amount = base_amount
         self.algorithm_name = "BellmanFordArbitrage"
-    
+
     def detect_opportunities(self, graph: nx.DiGraph, source_token: str = None) -> List[ArbitrageOpportunity]:
         """
-        Use Bellman-Ford algorithm to detect negative cycle arbitrage opportunities
+        Use Bellman-Ford algorithm to detect negative cycle arbitrage opportunities in a complete graph
         """
         opportunities = []
-        
-        if not source_token:
-            source_token = self._select_best_source_token(graph)
-        
+
+        try:
+            # Always run Bellman-Ford from every node
+            print(f"[{self.algorithm_name}] Running from all {graph.number_of_nodes()} nodes to detect negative cycles...")
+
+            for node in graph.nodes():
+                node_opportunities = self.bellman_ford(graph, node)
+
+                # Add new opportunities (avoid duplicates)
+                for opp in node_opportunities:
+                    # Check if this opportunity is already in the list
+                    is_duplicate = False
+                    for existing in opportunities:
+                        if self._are_same_cycle(opp.path, existing.path):
+                            is_duplicate = True
+                            break
+                    # If not a duplicate, add to opportunities
+                    if not is_duplicate:
+                        opportunities.append(opp)
+                        
+            print(f"[{self.algorithm_name}] Found {len(opportunities)} total unique opportunities")
+
+        except Exception as e:
+            print(f"Bellman-Ford error: {e}")
+
+        return self._filter_profitable_opportunities(opportunities)
+
+    def bellman_ford(self, graph: nx.DiGraph, source_token: str) -> List[ArbitrageOpportunity]:
+        """
+        Bellman-Ford implementation for negative cycle detection
+        """
+        opportunities = []
+
         if source_token not in graph.nodes():
             print(f"Warning: Starting node {source_token} is not in the graph")
             return opportunities
-        
-        try:
-            # Initialize distance dictionary
-            distances = {node: float('inf') for node in graph.nodes()}
-            distances[source_token] = 0
-            predecessors = {node: None for node in graph.nodes()}
-            
-            # 松弛操作 (|V| - 1 次)
-            for _ in range(graph.number_of_nodes() - 1):
-                for u, v, data in graph.edges(data=True):
-                    # base
-                    base_weight = data.get('weight', 0)
-                    
-                    # slippage and price impact
-                    slippage_bps = data.get('slippage_bps', 0)
-                    price_impact_pct = data.get('price_impact_pct', 0)
-                    
-                    slippage_decimal = slippage_bps / 10000.0
-                    adjusted_weight = base_weight + slippage_decimal + abs(price_impact_pct) / 100.0
-                    
-                    if distances[u] != float('inf') and distances[u] + adjusted_weight < distances[v]:
-                        distances[v] = distances[u] + adjusted_weight
-                        predecessors[v] = u  # 前驱节点记录
-            
-            # 检测负环
-            negative_cycle_nodes = set()
-            for u, v, data in graph.edges(data=True):
-                # 使用相同的权重调整逻辑
-                base_weight = data.get('weight', 0)
-                slippage_bps = data.get('slippage_bps', 0)
-                price_impact_pct = data.get('price_impact_pct', 0)
-                slippage_decimal = slippage_bps / 10000.0
-                adjusted_weight = base_weight + slippage_decimal + abs(price_impact_pct) / 100.0
-                
-                if distances[u] != float('inf') and distances[u] + adjusted_weight < distances[v]:
-                    negative_cycle_nodes.add(v)
-            
-            # 重建负环路径
-            if negative_cycle_nodes:
-                for cycle_node in negative_cycle_nodes:
-                    cycle_path = self._find_actual_negative_cycle(graph, cycle_node)
-                    # len(path) = 5 (节点数量)
-                    if cycle_path and len(cycle_path) <= self.max_hops + 1:
-                        opportunity = self._create_arbitrage_opportunity(graph, cycle_path)
-                        if opportunity:
-                            opportunities.append(opportunity)
-                                
-        except Exception as e:
-            print(f" Bellman-Ford error: {e}")
 
-        return self._filter_profitable_opportunities(opportunities)
-    
-    def _select_best_source_token(self, graph: nx.DiGraph) -> str:
+        # Initialize distance dictionary and predecessors
+        distances, predecessors = self._initialize_distances_and_predecessors(graph, source_token)
+
+        # relaxation (|V| - 1 times)
+        for _ in range(graph.number_of_nodes() - 1):
+            self._relax_edges(graph, distances, predecessors)
+
+        # Detect negative cycles
+        negative_cycle_nodes = set()
+        for u, v, data in graph.edges(data=True):
+            adjusted_weight = self._calculate_adjusted_weight(data)
+            if distances[u] != float('inf') and distances[u] + adjusted_weight < distances[v]:
+                negative_cycle_nodes.add(v)
+
+        # Reconstruct negative cycle paths
+        if negative_cycle_nodes:
+            for cycle_node in negative_cycle_nodes:
+                cycle_path = self._find_actual_negative_cycle(
+                    graph, cycle_node)
+                if cycle_path and len(cycle_path) <= self.max_hops + 1:
+                    opportunity = self._create_arbitrage_opportunity(
+                        graph, cycle_path)
+                    if opportunity:
+                        print(f"Created opportunity: profit={opportunity.profit_ratio:.6f}, threshold={self.min_profit_threshold:.6f}")
+                        opportunities.append(opportunity)
+                    else:
+                        print(f"NO opportunity created")
+
+        print(f"Found {len(opportunities)} opportunities from source {source_token}")
+        return opportunities
+
+    def _are_same_cycle(self, path1: List[str], path2: List[str]) -> bool:
         """
-        Automatically select the best source token based on node degrees
+        Check if two paths represent the same cycle (considering rotations)
         """
-        if graph.number_of_nodes() == 0:
-            return None
-            
-        # indegree 和 outdegree 之和
-        degrees = {node: graph.in_degree(node) + graph.out_degree(node) 
-                  for node in graph.nodes()}
-        
-        # 选择度数最高的节点
-        best_node = max(degrees.keys(), key=lambda x: degrees[x])
-        return best_node
-    
+        if len(path1) != len(path2):
+            return False
+
+        # Remove last duplicate node for comparison
+        cycle1 = path1[:-1] if path1[0] == path1[-1] else path1
+        cycle2 = path2[:-1] if path2[0] == path2[-1] else path2
+
+        if len(cycle1) != len(cycle2):
+            return False
+
+        # Check all rotations
+        for i in range(len(cycle1)):
+            rotated = cycle1[i:] + cycle1[:i]
+            # Check reverse
+            if rotated == cycle2 or rotated == cycle2[::-1]:
+                return True
+
+        return False
+
     def _find_actual_negative_cycle(self, graph: nx.DiGraph, start_node: str) -> List[str]:
         """
-        find the actual negative cycle containing the specified node
-        两种策略：
-        1. 从起始节点出发，寻找短环
-        2. 从图中所有节点出发，寻找包含起始节点的环
+        Find the actual negative cycle using simple bellman-ford approach
         """
         try:
-            # 简单策略：检查所有从 start_node 开始的短环路径
-            def find_cycles_from_node(current, path, depth):
-                if depth > self.max_hops:
-                    return []
-                
-                cycles = []
-                
-                # 检查是否回到路径中的任一节点形成环
-                for neighbor in graph.successors(current):
-                    new_path = path + [neighbor]
-                    
-                    # 如果邻居在路径中，形成了环
-                    if neighbor in path:
-                        cycle_start_idx = path.index(neighbor)
-                        cycle = path[cycle_start_idx:] + [neighbor]
-                        
-                        # 验证环的权重
-                        total_weight = 0
-                        valid_cycle = True
-                        
-                        for i in range(len(cycle) - 1):
-                            if graph.has_edge(cycle[i], cycle[i + 1]):
-                                edge_data = graph[cycle[i]][cycle[i + 1]]
-                                # 使用调整后的权重计算
-                                base_weight = edge_data.get('weight', 0)
-                                slippage_bps = edge_data.get('slippage_bps', 0)
-                                price_impact_pct = edge_data.get('price_impact_pct', 0)
-                                slippage_decimal = slippage_bps / 10000.0
-                                adjusted_weight = base_weight + slippage_decimal + abs(price_impact_pct) / 100.0
-                                total_weight += adjusted_weight
-                            else:
-                                valid_cycle = False
-                                break
-                        
-                        if valid_cycle and total_weight < -1e-10:  # 有效负环
-                            cycles.append(cycle)
-                    
-                    # 继续深度搜索
-                    elif neighbor not in path and depth < self.max_hops:
-                        cycles.extend(find_cycles_from_node(neighbor, new_path, depth + 1))
-                
-                return cycles
+            # Initialize distances and predecessors
+            distances, predecessors = self._initialize_distances_and_predecessors(graph, start_node)
             
-            # 寻找从 start_node 开始的所有负环
-            cycles = find_cycles_from_node(start_node, [start_node], 0)
+            # Standard Bellman-Ford relaxation
+            for _ in range(graph.number_of_nodes() - 1):
+                self._relax_edges(graph, distances, predecessors)
             
-            if cycles:
-                # 返回最短的负环
-                best_cycle = min(cycles, key=len)
-                print(f"   🔍 找到负环: {[node[:8] + '...' for node in best_cycle]}")
-                return best_cycle
+            # Find any node that can still be relaxed (part of negative cycle)
+            cycle_node = None
+            for u, v, data in graph.edges(data=True):
+                adjusted_weight = self._calculate_adjusted_weight(data)
+                if distances[u] != float('inf') and distances[u] + adjusted_weight < distances[v]:
+                    cycle_node = v
+                    break
             
-            # 如果没找到，尝试从图中的所有节点开始搜索包含 start_node 的负环
-            for node in graph.nodes():
-                if node != start_node:
-                    cycles = find_cycles_from_node(node, [node], 0)
-                    
-                    # 寻找包含 start_node 的环
-                    for cycle in cycles:
-                        if start_node in cycle:
-                            print(f"   🔍 找到包含目标节点的负环: {[n[:8] + '...' for n in cycle]}")
-                            return cycle
+            if cycle_node is None:
+                return []
+            
+            # Find a node definitely in the cycle by following predecessors
+            visited = set()
+            current = cycle_node
+            while current not in visited and current is not None:
+                visited.add(current)
+                current = predecessors[current]
+            
+            if current is None:
+                return []
+            
+            # Reconstruct the cycle starting from current
+            cycle = [current]
+            next_node = predecessors[current]
+            while next_node != current and next_node is not None:
+                cycle.append(next_node)
+                next_node = predecessors[next_node]
+                if len(cycle) > self.max_hops:  # Safety check
+                    break
+            
+            if next_node == current and len(cycle) >= 2:
+                cycle.append(current)  # Complete the cycle
+                print(f"negative cycle detected: {[node[:8] + '...' for node in cycle]}")
+                return cycle
             
         except Exception as e:
-            print(f" an error occurs in negative path detection: {e}")
-        
+            print(f"Error in negative cycle detection: {e}")
+
         return []
-    
+
     def _create_arbitrage_opportunity(self, graph: nx.DiGraph, path: List[str]) -> Optional[ArbitrageOpportunity]:
-        """Create arbitrage opportunity object from path
-        考虑滑点值和交易平台费用"""
+        """
+        Create arbitrage opportunity object from path
+        """
+        path_display = []
+        for i in path:
+            path_display.append(i[:6]+'...') # Display first 6 characters
+        print(f" Creating opportunity from path: {path_display}")
+
         try:
             if len(path) < 2:
+                print(f"Path too short: {len(path)} nodes")
                 return None
-            
-            # Calculate total path weight, fees, slippage, and price impact
+
+            # Calculate total path weight, slippage, and price impact
             total_weight = 0.0
-            total_fee = 0.0
             total_slippage = 0.0
             total_price_impact = 0.0
-            platform_fees = 0.0
-            
+
+            print(f" Building trades from {len(path)} nodes:")
             for i in range(len(path) - 1):
                 from_token = path[i]
                 to_token = path[i + 1]
-                
+
                 if not graph.has_edge(from_token, to_token):
+                    print(f"Missing edge: {from_token[:6]}... -> {to_token[:6]}...")
                     return None  # Invalid path
-                
+
                 edge_data = graph[from_token][to_token]
                 weight = edge_data.get('weight', 0)
-                fee = edge_data.get('total_fee', 0)
-                
-                # 获取滑点和平台费用信息
-                slippage_bps = edge_data.get('slippage_bps', 0)  # basis points
-                platform_fee = edge_data.get('platform_fee', 0)
-                price_impact_pct = edge_data.get('price_impact_pct', 0)
-                
-                # 将滑点从基点转换为小数 (1 bps = 0.0001)
-                slippage_decimal = slippage_bps / 10000.0
-                
-                # 累加各项费用和影响
-                total_weight += weight
-                total_fee += fee
-                total_slippage += slippage_decimal
-                total_price_impact += abs(price_impact_pct)  # 价格影响通常为负值
-                platform_fees += platform_fee
 
-            adjusted_weight = total_weight + total_slippage + (total_price_impact / 100.0)
-            
+                slippage_bps = edge_data.get('slippage_bps', 0)
+                price_impact_pct = edge_data.get('price_impact_pct', 0)
+
+                slippage_decimal = slippage_bps / 10000.0
+
+                print(f"Trade {i+1}: {from_token[:6]}... -> {to_token[:6]}..., weight: {weight:.6f}")
+
+                total_weight += weight
+                total_slippage += slippage_decimal
+                total_price_impact += abs(price_impact_pct)
+
+            adjusted_weight = total_weight + \
+                total_slippage + (total_price_impact / 100.0)
+
+            print(f" Total weight: {total_weight:.6f}, adjusted: {adjusted_weight:.6f}")
+
             # Calculate profit ratio (negative weight indicates arbitrage opportunity)
-            if total_weight >= 0:
+            if adjusted_weight >= 0:
+                print(f"Path not profitable: adjusted_weight = {adjusted_weight:.6f}")
                 return None  # No arbitrage opportunity
 
             base_profit_ratio = math.exp(-adjusted_weight) - 1
+            print(f"Profitable path: weight = {adjusted_weight:.6f}, profit = {base_profit_ratio:.6f}")
 
-            total_all_fees = total_fee + platform_fees
+            # No need to deduct total_fee as outAmount already has fees deducted
+            actual_profit_ratio = base_profit_ratio
 
-            actual_profit_ratio = base_profit_ratio - (total_all_fees / self.base_amount)
-            
-            # Estimated profit (SOL)
+            # Estimated profit (SOL) - profit before gas fee
             estimated_profit = self.base_amount * actual_profit_ratio
 
-            slippage_risk = min(1.0, total_slippage * 10)  # 滑点风险因子
-            price_impact_risk = min(1.0, total_price_impact / 10)  # 价格影响风险因子
-            
-            # Confidence score calculation
-            if total_all_fees > 0:
-                profit_fee_ratio = max(0, estimated_profit / total_all_fees)
-                base_confidence = min(1.0, profit_fee_ratio / 5)  # 利润费用比
+            slippage_risk = min(1.0, total_slippage * 10)
+            price_impact_risk = min(1.0, total_price_impact / 10)
+
+            # Confidence score calculation based on profit magnitude and market risks
+            if estimated_profit > 0:
+                # Higher profit = higher confidence
+                # Adjust multiplier as needed
+                base_confidence = min(1.0, estimated_profit * 10)
             else:
-                base_confidence = 0.5
- 
-            confidence_score = base_confidence * (1 - slippage_risk) * (1 - price_impact_risk)
+                base_confidence = 0.0
+
+            confidence_score = base_confidence * \
+                (1 - slippage_risk) * (1 - price_impact_risk)
             confidence_score = max(0.0, min(1.0, confidence_score))
-            
+
             # Generate path symbols (for display)
             path_symbols = [f"{addr[:4]}...{addr[-4:]}" for addr in path]
-            
+
             return ArbitrageOpportunity(
                 path=path,
                 path_symbols=path_symbols,
                 profit_ratio=actual_profit_ratio,
                 total_weight=adjusted_weight,
-                total_fee=total_all_fees,
+                total_fee=0.0,
                 hop_count=len(path) - 1,
                 confidence_score=confidence_score,
                 estimated_profit_sol=estimated_profit
             )
-            
+
         except Exception as e:
-            print(f" Failed to create arbitrage opportunity [{self.algorithm_name}]: {e}")
+            print(
+                f" Failed to create arbitrage opportunity [{self.algorithm_name}]: {e}")
             return None
-    
+
     def _filter_profitable_opportunities(self, opportunities: List[ArbitrageOpportunity]) -> List[ArbitrageOpportunity]:
         """Filter opportunities that meet profit threshold"""
         filtered = [opp for opp in opportunities
                     if opp and opp.profit_ratio >= self.min_profit_threshold]
         return filtered
+
+    def _calculate_adjusted_weight(self, edge_data):
+        """Calculate adjusted weight including slippage and price impact"""
+        base_weight = edge_data.get('weight', 0)
+        slippage_bps = edge_data.get('slippage_bps', 0)
+        price_impact_pct = edge_data.get('price_impact_pct', 0)
+        slippage_decimal = slippage_bps / 10000.0
+        return base_weight + slippage_decimal + abs(price_impact_pct) / 100.0
+
+    def _initialize_distances_and_predecessors(self, graph, start_node):
+        """Initialize distances and predecessors for Bellman-Ford"""
+        distances = {}
+        predecessors = {}
+        for node in graph.nodes():
+            distances[node] = float('inf')
+            predecessors[node] = None
+        distances[start_node] = 0
+        return distances, predecessors
+
+    def _relax_edges(self, graph, distances, predecessors):
+        """Perform edge relaxation step of Bellman-Ford algorithm"""
+        for u, v, data in graph.edges(data=True):
+            adjusted_weight = self._calculate_adjusted_weight(data)
+            if distances[u] != float('inf') and distances[u] + adjusted_weight < distances[v]:
+                distances[v] = distances[u] + adjusted_weight
+                predecessors[v] = u

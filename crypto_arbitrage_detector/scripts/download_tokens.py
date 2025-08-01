@@ -1,13 +1,17 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 import requests
 import json
-import os
 from datetime import datetime
+from crypto_arbitrage_detector.configs.request_config import jupiter_tokens_api
 
 
 class TokenDownloader:
     def __init__(self):
-        self.jupiter_url = 'https://cache.jup.ag/tokens'
-        self.output_file = 'data/jupiter_tokens.json'
+        self.jupiter_url = jupiter_tokens_api['base_url']
+        self.output_file = jupiter_tokens_api['output_file']
+        self.timeout = jupiter_tokens_api['timeout']
         
     def download_and_save_tokens(self):
         """Download tokens from Jupiter API and save to JSON file"""
@@ -19,7 +23,7 @@ class TokenDownloader:
 
         try:
             # Make HTTP request
-            response = requests.get(self.jupiter_url, timeout=30)
+            response = requests.get(self.jupiter_url, timeout=self.timeout)
             
             if response.status_code == 200:
                 tokens_data = response.json()

@@ -2,6 +2,16 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass
 
 @dataclass
+class VolumeRanking:
+    address: str
+    symbol: str
+    volume_24h: float
+    liquidity_usd: float
+    rank: int
+    creation_date: str
+
+
+@dataclass
 class TokenInfo:
     # Token information fron Jupiter list
     address: str
@@ -27,12 +37,15 @@ class TokenInfo:
 class EdgePairs:
     from_token: str  # from quote api inputMint
     to_token: str  # from quote api outputMint
+    in_amount: float  # from quote api inAmount in sol
+    out_amount: float  # from quote api outAmount in sol
     price_ratio: float  # calculated from quote api inAmount and outAmount
     weight: float  # calculated from price_ratio
     slippage_bps: int  # from quote api slippageBps
     platform_fee: float  # from quote api platformFee
     price_impact_pct: float  # from quote api priceImpactPct
     total_fee: float  # calculated from quote api routePlan
+    gas_fee: int  # gas fee in lamports, default to 25000
 
 
 @dataclass
@@ -43,8 +56,8 @@ class ArbitrageOpportunity:
     total_weight: float
     total_fee: float
     hop_count: int
-    confidence_score: float  # 置信度分数 (0-1)
-    estimated_profit_sol: float  # 预估利润 (SOL)
+    confidence_score: float
+    estimated_profit_sol: float
 
     def __post_init__(self):
         if not self.hop_count:

@@ -1,20 +1,18 @@
-import asyncio
-import json
-import os
 import sys
-from typing import List, Optional, Dict
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+import json
+from typing import List, Dict
 from datetime import datetime, timedelta
-# Add the parent directory to the path to import data_structures
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'utils')))
-from data_structures import TokenInfo
-
+from crypto_arbitrage_detector.utils.data_structures import TokenInfo
+from crypto_arbitrage_detector.configs.request_config import jupiter_tokens_api
 
 class JupiterAPIClient:
-    def __init__(self, token_file_path: str = "data/jupiter_tokens.json"):
+    def __init__(self, token_file_path: str = jupiter_tokens_api['output_file']):
         self.token_file_path = token_file_path
         self.tokens_cache = []
-
-    def fetch_token_list(self, max_age_hours: int = 7*24) -> List[TokenInfo]:
+    
+    def fetch_token_list(self, max_age_hours: int = jupiter_tokens_api["max_age_hours"]) -> List[TokenInfo]:
         """Load token list from local JSON file with freshness check"""
         
         # Check if file exists and is fresh

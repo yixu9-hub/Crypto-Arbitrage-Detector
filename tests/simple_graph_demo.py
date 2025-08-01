@@ -6,7 +6,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from tests.mock_data import static_test_edges
+from tests.mock_TokenInfo import static_test_edges
 from crypto_arbitrage_detector.utils.graph_utils import visualize_graph, analyze_graph
 from crypto_arbitrage_detector.utils.graph_structure import TokenGraphBuilder, build_graph_from_edge_lists
 
