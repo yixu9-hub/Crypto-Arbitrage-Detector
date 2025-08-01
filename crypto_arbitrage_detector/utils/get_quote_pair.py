@@ -9,14 +9,14 @@ from crypto_arbitrage_detector.utils.data_structures import TokenInfo, EdgePairs
 from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api
 from crypto_arbitrage_detector.utils.enrich_gas_fee import enrich_responses_with_gas_fee
 
-import math
 
 # Function to prepare single request from Jupiter quote API
+
 async def fetch_quote(
-        session: aiohttp.ClientSession, 
-        input_mint: str, 
-        output_mint: str, 
-        #semaphore: asyncio.Semaphore, 
+        session: aiohttp.ClientSession,
+        input_mint: str,
+        output_mint: str,
+        # semaphore: asyncio.Semaphore,
         amount: int = jupiter_quote_api["default_tx_amount"]) -> Dict:
     '''
     Fetch quote from Jupiter API for a given token pair.
@@ -36,30 +36,33 @@ async def fetch_quote(
     }
     # Set headers to mimic a browser request
     headers = jupiter_quote_api["headers"]
-    #async with semaphore:
+    # async with semaphore:
     try:
         async with session.get(
-            jupiter_quote_api["base_url"], 
-            params=params, 
-            headers=headers, 
-            #proxy=strategy_config.PROXY_URL, 
-            #timeout=15
-            #ssl=False
-            ) as resp:
-            #print(f"[DEBUG] Request URL: {resp.url}")
+            jupiter_quote_api["base_url"],
+            params=params,
+            headers=headers,
+            # proxy=strategy_config.PROXY_URL,
+            # timeout=15
+            # ssl=False
+        ) as resp:
+            # print(f"[DEBUG] Request URL: {resp.url}")
             if resp.status == 200:
                 quote_data = await resp.json()
-                #print(f"[DEBUG] Response Data: {quote_data}")
+                # print(f"[DEBUG] Response Data: {quote_data}")
                 return quote_data
             else:
-                print(f"Non-200 response: {resp.status} | {input_mint} {output_mint}")
+                print(
+                    f"Non-200 response: {resp.status} | {input_mint} {output_mint}")
                 return {}
-        
+
     except Exception as e:
         print(f"Error fetching quote: {e}")
         return {}
 
 # Function to request data from Jupiter API for edge pairs
+
+
 async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_quote_api["default_tx_amount"]) -> List[EdgePairs]:
     '''
     Fetch edge pairs from Jupiter API for all token combinations.
@@ -68,7 +71,7 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
     Returns:
         List[EdgePairs]: List of EdgePairs objects containing quote data.
     '''
-    #semaphore = asyncio.Semaphore(5)
+    # semaphore = asyncio.Semaphore(5)
     edge_pairs = []
     # create all requests for each token pair
     async with aiohttp.ClientSession() as session:
@@ -77,12 +80,12 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
             for token_out in token_list:
                 if token_in.address != token_out.address:
                     tasks.append(fetch_quote(
-                        session, 
-                        token_in.address, 
+                        session,
+                        token_in.address,
                         token_out.address,
-                        #semaphore,
+                        # semaphore,
                         tx_amount
-                        ))
+                    ))
 
     # execute all requests concurrently
         responses = await asyncio.gather(*tasks)
@@ -117,7 +120,7 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
                         fee = float(fee_str)
                         price_in_sol = price_map.get(fee_mint, 0.0)
                         total_fee_sol += fee * price_in_sol
-              
+
                 # Handle platform fee if return null
                 platform_fee_info = data.get("platformFee")
                 if isinstance(platform_fee_info, dict):
@@ -173,7 +176,8 @@ def generate_price_map_from_responses(responses: List[Dict]) -> Dict[str, float]
 
             if in_mint == sol and out_amt > 0:
                 # 1 SOL = ? other_token
-                price = 1 / (out_amt / in_amt)  # other_token/SOL → SOL/other_token
+                # other_token/SOL → SOL/other_token
+                price = 1 / (out_amt / in_amt)
                 price_map[out_mint] = price
             elif out_mint == sol and in_amt > 0:
 
