@@ -37,7 +37,8 @@ class TokenInfo:
 class EdgePairs:
     from_token: str  # from quote api inputMint
     to_token: str  # from quote api outputMint
-    out_amount: float  # from quote api outAmount
+    in_amount: float  # from quote api inAmount in sol
+    out_amount: float  # from quote api outAmount in sol
     price_ratio: float  # calculated from quote api inAmount and outAmount
     weight: float  # calculated from price_ratio
     slippage_bps: int  # from quote api slippageBps

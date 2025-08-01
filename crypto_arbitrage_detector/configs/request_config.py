@@ -25,15 +25,16 @@ jupiter_tokens_api = {
 jupiter_quote_api = {
     "base_url": "https://quote-api.jup.ag/v6/quote",
     "default_slippage_bps": 100,             # 1% slippage
-    "default_tx_amount": 1000000000,          # 1 SOL in lamports
+    "default_tx_amount": 10000,          # 10000 units of input token
     "sol_mint": "So11111111111111111111111111111111111111112",
     "headers": {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-CA,en-US;q=0.9,en;q=0.8",
-    "Origin": "https://jup.ag",
-    "Referer": "https://jup.ag/",
-    "Connection": "keep-alive"
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.133 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "en-CA,en;q=0.9",
+        "Origin": "https://jup.ag",
+        "Referer": "https://jup.ag/",
+        "Connection": "keep-alive"
     }
 }
 
