@@ -17,7 +17,7 @@ class TwoHopArbitrage:
 
     def __init__(self,
                  min_profit_threshold: float = 0.005,
-                 max_hops: int = 4,
+                 max_hops: int = 3,
                  base_amount: float = 1.0):
         """
         Initialize algorithm
