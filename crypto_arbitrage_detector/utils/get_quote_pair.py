@@ -1,13 +1,12 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import sys, os
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 import asyncio
 import aiohttp
 from typing import List, Dict
-from dataclasses import dataclass, field
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo, EdgePairs
-from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api, scraper_config, solana_rpc_api
-from crypto_arbitrage_detector.utils.simulate_gas_fee import fetch_swap_transaction, simulate_gas_fee
+from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api
 from crypto_arbitrage_detector.utils.enrich_gas_fee import enrich_responses_with_gas_fee
 
 import math
@@ -32,8 +31,8 @@ async def fetch_quote(
     params = {
         "inputMint": input_mint,
         "outputMint": output_mint,
-        "amount": amount,
-        "slippageBps": jupiter_quote_api["default_slippage_bps"]
+        "amount": amount
+        #"slippageBps": jupiter_quote_api["default_slippage_bps"]
     }
     # Set headers to mimic a browser request
     headers = jupiter_quote_api["headers"]
@@ -87,6 +86,7 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
 
     # execute all requests concurrently
         responses = await asyncio.gather(*tasks)
+        responses = [r for r in responses if r and "inputMint" in r and "routePlan" in r]
         responses = await enrich_responses_with_gas_fee(responses)
     
     # generate a price map in order to calculate the total_fee in SOL
@@ -124,12 +124,19 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
                     platform_fee = float(platform_fee_info.get("amount", 0))
                 else:
                     platform_fee = 0.0
+                
+                out_mint = data["outputMint"]
+                out_amount_in_sol = out_amount * price_map.get(out_mint, 0.0)
+
+                in_mint = data["inputMint"]
+                in_amount_in_sol = in_amount * price_map.get(in_mint, 0.0)
 
                 # Create EdgePairs object
                 edge = EdgePairs(
                     from_token=data["inputMint"],
                     to_token=data["outputMint"],
-                    out_amount=out_amount,
+                    in_amount=in_amount_in_sol,
+                    out_amount=out_amount_in_sol,
                     price_ratio=price_ratio,
                     weight=weight,
                     slippage_bps=data.get("slippageBps", 0),
