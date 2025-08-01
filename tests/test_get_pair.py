@@ -13,7 +13,7 @@ async def test_edge_pairs() -> List[EdgePairs]:
     print("🔁 Running quote test using pickle file...\n")
     
     # 调用主函数获取所有 token 对之间的边
-    with open("../data/enriched_tokens.pkl", "rb") as f:
+    with open("data/enriched_tokens.pkl", "rb") as f:
         TokenLists: List[TokenInfo] = pickle.load(f)
     print(f"✅ Loaded {len(TokenLists)} tokens from pickle file\n")
     
