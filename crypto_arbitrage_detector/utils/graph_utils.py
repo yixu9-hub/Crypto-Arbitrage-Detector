@@ -6,16 +6,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def visualize_graph(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8):
+def visualize_graph(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8
+                    , show_plot=True):
     '''
     Visualizes a directed graph with edge labels showing weight and total_fee.
-    Handles bidirectional edges by drawing them separately with labels on each side.
 
     Args:
         G: NetworkX directed graph to visualize
         figsize: Figure size as (width, height) tuple
         node_size: Size of nodes in the visualization
-        font_size: Font size for labels
+        font_size: font size for labels
+        show_plot: where to display the plot (False for Streamlit, True for console)
+    
+    Returns:
+        fig: matplotlib figure object for Streamlit display, 
+        or call in console if show_plot is True(default)
     '''
     if G is None:
         raise ValueError("Graph cannot be None")
@@ -25,7 +30,7 @@ def visualize_graph(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8)
 
     if G.number_of_nodes() == 0:
         print("Warning: Graph has no nodes to visualize")
-        return
+        return None
 
     fig, ax = plt.subplots(figsize=figsize)
 
@@ -147,25 +152,41 @@ def visualize_graph(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8)
              bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
 
     plt.tight_layout()
-    plt.show()
+
+    # Only show plot if in console (not for streamlit)
+    if show_plot:
+        plt.show()
+    
+    return fig
 
 
-def print_graph_statistics(G: nx.DiGraph):
+# direct streamlit-specific visualization function, call in app.py
+def visualize_graph_for_streamlit(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8):
     '''
-    Print comprehensive graph statistics including nodes, edges, and bidirectional pairs.
+    Streamlit graph visualization function.
+
+    Returns:
+        fig: matplotlib figure object for st.pyplot()
+    '''
+    return visualize_graph(G, figsize=figsize, node_size=node_size, 
+                          font_size=font_size, show_plot=False)
+
+
+def get_graph_statistics(G: nx.DiGraph) -> dict:
+    '''
+    Get comprehensive graph statistics as a dictionary (Streamlit-friendly).
     
     Args:
         G: NetworkX directed graph
+        
+    Returns:
+        dict: Graph statistics
     '''
     if G is None:
         raise ValueError("Graph cannot be None")
 
     if not isinstance(G, nx.DiGraph):
         raise TypeError(f"Expected nx.DiGraph, got {type(G)}")
-
-    print(f"\nGraph Statistics:")
-    print(f"Number of nodes (tokens): {G.number_of_nodes()}")
-    print(f"Number of edges (trading pairs): {G.number_of_edges()}")
 
     # Check for bidirectional edges
     bidirectional_pairs = 0
@@ -180,8 +201,69 @@ def print_graph_statistics(G: nx.DiGraph):
         if len(edges) == 2:
             bidirectional_pairs += 1
 
-    print(f"Bidirectional token pairs: {bidirectional_pairs}")
-    print(f"Unidirectional edges: {G.number_of_edges() - bidirectional_pairs * 2}")
+    return {
+        'total_nodes': G.number_of_nodes(),
+        'total_edges': G.number_of_edges(),
+        'bidirectional_pairs': bidirectional_pairs,
+        'unidirectional_edges': G.number_of_edges() - bidirectional_pairs * 2
+    }
+
+
+def print_graph_statistics(G: nx.DiGraph):
+    '''
+    Print comprehensive graph statistics including nodes, edges, and bidirectional pairs.
+    
+    Args:
+        G: NetworkX directed graph
+    '''
+    stats = get_graph_statistics(G)
+    
+    print(f"\nGraph Statistics:")
+    print(f"Number of nodes (tokens): {stats['total_nodes']}")
+    print(f"Number of edges (trading pairs): {stats['total_edges']}")
+    print(f"Bidirectional token pairs: {stats['bidirectional_pairs']}")
+    print(f"Unidirectional edges: {stats['unidirectional_edges']}")
+
+
+def get_edge_summary(G: nx.DiGraph, max_edges=20) -> list:
+    '''
+    Get edge summary as a list of dictionaries (Streamlit-friendly).
+    
+    Args:
+        G: NetworkX directed graph
+        max_edges: Maximum number of edges to include
+        
+    Returns:
+        list: List of edge dictionaries with summary info
+    '''
+    if G is None:
+        raise ValueError("Graph cannot be None")
+
+    if not isinstance(G, nx.DiGraph):
+        raise TypeError(f"Expected nx.DiGraph, got {type(G)}")
+
+    edges_data = []
+    
+    for i, (from_node, to_node, edge_data) in enumerate(G.edges(data=True), 1):
+        if i > max_edges:
+            break
+            
+        # Smart truncation for display
+        from_short = from_node if len(from_node) <= 10 else from_node[:8] + "..." + from_node[-4:]
+        to_short = to_node if len(to_node) <= 10 else to_node[:8] + "..." + to_node[-4:]
+        
+        edges_data.append({
+            'index': i,
+            'from_token': from_short,
+            'to_token': to_short,
+            'weight': edge_data.get('weight', 'N/A'),
+            'total_fee': edge_data.get('total_fee', 'N/A'),
+            'price_ratio': edge_data.get('price_ratio', 'N/A'),
+            'slippage_bps': edge_data.get('slippage_bps', 'N/A'),
+            'price_impact_pct': edge_data.get('price_impact_pct', 'N/A')
+        })
+    
+    return edges_data
 
 
 def print_edge_summary(G: nx.DiGraph, max_edges=20):
@@ -192,26 +274,22 @@ def print_edge_summary(G: nx.DiGraph, max_edges=20):
         G: NetworkX directed graph
         max_edges: Maximum number of edges to display in summary
     '''
-    if G is None:
-        raise ValueError("Graph cannot be None")
-
-    if not isinstance(G, nx.DiGraph):
-        raise TypeError(f"Expected nx.DiGraph, got {type(G)}")
-
-    # Print detailed edge information for small graphs only
-    if G.number_of_edges() <= max_edges:
-        print(f"\nEdge Summary:")
-        for i, (from_node, to_node, edge_data) in enumerate(G.edges(data=True), 1):
-            # Smart truncation: keep symbol names, truncate long addresses
-            from_short = from_node if len(from_node) <= 10 else from_node[:8] + "..." + from_node[-4:]
-            to_short = to_node if len(to_node) <= 10 else to_node[:8] + "..." + to_node[-4:]
-            print(f"{i:2d}. {from_short} -> {to_short}")
-            print(f"    Weight: {edge_data.get('weight', 'N/A')}")
-            print(f"    Total Fee: {edge_data.get('total_fee', 'N/A')}")
-            print(f"    Price Ratio: {edge_data.get('price_ratio', 'N/A')}")
-            print(f"    Slippage BPS: {edge_data.get('slippage_bps', 'N/A')}")
-    else:
+    edges_data = get_edge_summary(G, max_edges)
+    
+    if len(edges_data) == 0:
         print(f"\nGraph has {G.number_of_edges()} edges. Use print_edge_details() for full edge information.")
+        return
+        
+    print(f"\nEdge Summary:")
+    for edge in edges_data:
+        print(f"{edge['index']:2d}. {edge['from_token']} -> {edge['to_token']}")
+        print(f"    Weight: {edge['weight']}")
+        print(f"    Total Fee: {edge['total_fee']}")
+        print(f"    Price Ratio: {edge['price_ratio']}")
+        print(f"    Slippage BPS: {edge['slippage_bps']}")
+    
+    if G.number_of_edges() > max_edges:
+        print(f"\nShowing {max_edges} of {G.number_of_edges()} edges. Use print_edge_details() for full information.")
 
 
 def print_edge_details(G: nx.DiGraph):
@@ -231,15 +309,18 @@ def print_edge_details(G: nx.DiGraph):
     print("=" * 80)
 
     for i, (from_node, to_node, edge_data) in enumerate(G.edges(data=True), 1):
-        # Address for both start and end for better identification
-        from_short = from_node if len(from_node) <= 15 else from_node[:10] + "..." + from_node[-4:]
-        to_short = to_node if len(to_node) <= 15 else to_node[:10] + "..." + to_node[-4:]
+        # Address for both start and end
+        from_short = from_node if len(
+            from_node) <= 15 else from_node[:10] + "..." + from_node[-4:]
+        to_short = to_node if len(
+            to_node) <= 15 else to_node[:10] + "..." + to_node[-4:]
 
         print(f"{i:3d}. {from_short} -> {to_short}")
         print(f"     Weight: {edge_data.get('weight', 'N/A')}")
         print(f"     Total Fee: {edge_data.get('total_fee', 'N/A')}")
         print(f"     Price Ratio: {edge_data.get('price_ratio', 'N/A')}")
-        print(f"     Price Impact: {edge_data.get('price_impact_pct', 'N/A')}%")
+        print(
+            f"     Price Impact: {edge_data.get('price_impact_pct', 'N/A')}%")
         print(f"     Slippage BPS: {edge_data.get('slippage_bps', 'N/A')}")
         print(f"     Platform Fee: {edge_data.get('platform_fee', 'N/A')}")
         print("-" * 60)
@@ -261,15 +342,15 @@ def analyze_graph(G: nx.DiGraph, show_visualization=True, show_edge_summary=True
     if not isinstance(G, nx.DiGraph):
         raise TypeError(f"Expected nx.DiGraph, got {type(G)}")
 
-    print("📊 Graph Analysis Report")
+    print("Graph Analysis Report")
     print("=" * 50)
-    
+
     if show_statistics:
         print_graph_statistics(G)
-    
+
     if show_edge_summary:
         print_edge_summary(G)
-    
+
     if show_visualization and G.number_of_nodes() > 0:
-        print("\n🎨 Displaying graph visualization...")
+        print("\nDisplaying graph visualization...")
         visualize_graph(G)
