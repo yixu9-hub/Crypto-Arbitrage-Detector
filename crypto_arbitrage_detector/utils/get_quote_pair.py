@@ -20,7 +20,9 @@ async def fetch_quote(
         # semaphore: asyncio.Semaphore,
         amount: int = jupiter_quote_api["default_tx_amount"],
         quote_url: str = jupiter_quote_api["base_url"],
-        api_key: str = jupiter_quote_api["api_key"]
+        api_key: str = jupiter_quote_api["api_key"],
+        from_symbol=None,
+        to_symbol=None
         ) -> Dict:
     '''
     Fetch quote from Jupiter API for a given token pair.
@@ -58,6 +60,8 @@ async def fetch_quote(
             # print(f"[DEBUG] Request URL: {resp.url}")
             if resp.status == 200:
                 quote_data = await resp.json()
+                quote_data["from_symbol"] = from_symbol
+                quote_data["to_symbol"] = to_symbol
                 # print(f"[DEBUG] Response Data: {quote_data}")
                 return quote_data
             else:
@@ -102,7 +106,9 @@ async def get_edge_pairs(
                         # semaphore,
                         tx_amount,
                         quote_url=quote_url,
-                        api_key=api_key
+                        api_key=api_key,
+                        from_symbol=token_in.symbol,
+                        to_symbol=token_out.symbol
                     ))
 
     # execute all requests concurrently
@@ -156,6 +162,8 @@ async def get_edge_pairs(
                 edge = EdgePairs(
                     from_token=data["inputMint"],
                     to_token=data["outputMint"],
+                    from_symbol=data["from_symbol"],
+                    to_symbol=data["to_symbol"],
                     in_amount=in_amount_in_sol,
                     out_amount=out_amount_in_sol,
                     price_ratio=price_ratio,

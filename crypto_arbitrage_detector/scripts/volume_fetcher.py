@@ -264,7 +264,7 @@ class MassVolumeRanker:
             print(f"Error saving tokens: {e}")
 
 
-async def main(top_n_tokens: int = 8) -> Dict: #change to 10 for testing
+async def main(top_n_tokens: int = 10) -> Dict: #change to 10 for testing
     """Ultra-optimized pipeline: rank all, enrich only winners"""
     
     # Step 1: Load all Jupiter tokens

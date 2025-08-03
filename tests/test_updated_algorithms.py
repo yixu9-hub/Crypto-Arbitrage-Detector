@@ -2,13 +2,12 @@
 Test Updated Algorithms - No Starting Node
 Test to verify all algorithms now search the entire graph without relying on a single starting node
 """
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from arbitrage_test_data import arbitrage_test_edges
 from crypto_arbitrage_detector.utils.graph_structure import build_graph_from_edge_lists
 from crypto_arbitrage_detector.algorithms.arbitrage_detector_integrated import IntegratedArbitrageDetector
-import sys
-import os
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def test_updated_algorithms():
@@ -49,10 +48,11 @@ def test_updated_algorithms():
     if opportunities:
         print(f"\nTop {min(5, len(opportunities))} opportunities:")
         for i, opp in enumerate(opportunities[:5], 1):
-            print(f"{i}. Path: {' -> '.join(opp.path_symbols)}")
-            print(f"   Profit: {opp.profit_ratio*100:.3f}%")
-            print(f"   Confidence: {opp.confidence_score:.3f}")
-            print(f"   Hops: {opp.hop_count}")
+            #print(f"{i}. Path: {' -> '.join(opp.path_symbols)}")
+            #print(f"   Profit: {opp.profit_ratio*100:.3f}%")
+            #print(f"   Confidence: {opp.confidence_score:.3f}")
+            #print(f"   Hops: {opp.hop_count}")
+            print(opp)
     else:
         print("No arbitrage opportunities found.")
         print("This is expected if the test data represents a balanced market.")
