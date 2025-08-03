@@ -99,16 +99,22 @@ class TokenGraphBuilder:
                         f"Edge at index {i} has invalid total_fee: {edge.total_fee} (must be non-negative number)")
 
                 # can add edge to graph
-                G.add_edge(
-                    edge.from_token,
-                    edge.to_token,
-                    weight=edge.weight,
-                    price_ratio=edge.price_ratio,
-                    slippage_bps=edge.slippage_bps,
-                    platform_fee=edge.platform_fee,
-                    price_impact_pct=edge.price_impact_pct,
-                    total_fee=edge.total_fee
-                )
+                edge_attributes = {
+                    'weight': edge.weight,
+                    'price_ratio': edge.price_ratio,
+                    'slippage_bps': edge.slippage_bps,
+                    'platform_fee': edge.platform_fee,
+                    'price_impact_pct': edge.price_impact_pct,
+                    'total_fee': edge.total_fee
+                }
+                
+                # Add symbol information if available
+                if hasattr(edge, 'from_symbol') and edge.from_symbol:
+                    edge_attributes['from_symbol'] = edge.from_symbol
+                if hasattr(edge, 'to_symbol') and edge.to_symbol:
+                    edge_attributes['to_symbol'] = edge.to_symbol
+                
+                G.add_edge(edge.from_token, edge.to_token, **edge_attributes)
 
             except (AttributeError, ValueError, TypeError) as e:
                 raise ValueError(

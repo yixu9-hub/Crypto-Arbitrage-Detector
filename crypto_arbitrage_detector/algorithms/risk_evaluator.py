@@ -1,7 +1,11 @@
 """
 Risk Evaluator for Arbitrage Opportunities
-考虑滑点风险，gas fee和交易复杂度（hop count）
+This module evaluates the risk of arbitrage opportunities based on factors:
+- Slippage risk
+- Gas fee
+- Transaction complexity (hop count)
 """
+
 from utils.data_structures import ArbitrageOpportunity
 from typing import List, Dict, Optional
 import math

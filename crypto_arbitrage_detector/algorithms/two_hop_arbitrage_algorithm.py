@@ -8,6 +8,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from typing import List, Optional
 from utils.data_structures import ArbitrageOpportunity
+from utils.graph_utils import get_node_symbol
 
 
 class TwoHopArbitrage:
@@ -74,7 +75,9 @@ class TwoHopArbitrage:
             confidence_score = self._calculate_confidence_score(graph, path, estimated_profit)
 
             # Generate display symbols
-            path_symbols = [f"{addr[:4]}...{addr[-4:]}" for addr in path]
+            path_symbols = []
+            for addr in path:
+                path_symbols.append(get_node_symbol(graph, addr))
 
             return ArbitrageOpportunity(
                 path=path,

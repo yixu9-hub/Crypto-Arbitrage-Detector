@@ -4,14 +4,14 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from two_hop_arbitrage_algorithm import TwoHopArbitrage
-from triangle_arbitrage_algorithm import TriangleArbitrage
-from bellman_ford_algorithm import BellmanFordArbitrage
-from exhaustive_dfs_algorithm import ExhaustiveDFSArbitrage
-from risk_evaluator import ArbitrageRiskEvaluator
-from utils.data_structures import ArbitrageOpportunity
-from typing import List, Dict, Optional
 import networkx as nx
+from typing import List, Dict, Optional
+from utils.data_structures import ArbitrageOpportunity
+from risk_evaluator import ArbitrageRiskEvaluator
+from exhaustive_dfs_algorithm import ExhaustiveDFSArbitrage
+from bellman_ford_algorithm import BellmanFordArbitrage
+from triangle_arbitrage_algorithm import TriangleArbitrage
+from two_hop_arbitrage_algorithm import TwoHopArbitrage
 
 
 class IntegratedArbitrageDetector:
@@ -20,8 +20,9 @@ class IntegratedArbitrageDetector:
     def __init__(self,
                  min_profit_threshold: float = 0.005,  # Minimum profit threshold 0.5%
                  max_hops: int = 4,                   # Maximum hops
-                 base_amount: float = 1.0,            # Base trading amount (SOL)
-                 enable_risk_evaluation: bool = True): # Enable risk assessment
+                 # Base trading amount (SOL)
+                 base_amount: float = 1.0,
+                 enable_risk_evaluation: bool = True):  # Enable risk assessment
         """
         Initialize Integrated Arbitrage Detector
 
@@ -43,7 +44,7 @@ class IntegratedArbitrageDetector:
             min_profit_threshold, max_hops, base_amount)
         self.exhaustive_dfs = ExhaustiveDFSArbitrage(
             min_profit_threshold, max_hops, base_amount)
-        
+
         # Initialize risk evaluator if enabled
         if self.enable_risk_evaluation:
             self.risk_evaluator = ArbitrageRiskEvaluator()
@@ -54,7 +55,8 @@ class IntegratedArbitrageDetector:
         print(f"   Min profit threshold: {min_profit_threshold*100:.1f}%")
         print(f"   Max hops: {max_hops}")
         print(f"   Base amount: {base_amount} SOL")
-        print(f"   Risk evaluation: {'Enabled' if enable_risk_evaluation else 'Disabled'}")
+        print(
+            f"   Risk evaluation: {'Enabled' if enable_risk_evaluation else 'Disabled'}")
         print(f"   Available algorithms: Bellman-Ford, Triangle, Two-Hop, Exhaustive DFS")
 
     def detect_arbitrage(self, graph: nx.DiGraph,
@@ -80,19 +82,22 @@ class IntegratedArbitrageDetector:
             f"Graph statistics: {graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges")
 
         # no specific starting token
-        print(f"Searching for negative cycles across all {graph.number_of_nodes()} nodes...")
+        print(
+            f"Searching for negative cycles across all {graph.number_of_nodes()} nodes...")
 
         # Method 1: Bellman-Ford negative cycle detection
         if enable_bellman_ford:
             print("\nRunning Bellman-Ford negative cycle detection...")
-            bf_opportunities = self.bellman_ford.detect_opportunities(graph, None)
+            bf_opportunities = self.bellman_ford.detect_opportunities(
+                graph, None)
             opportunities.extend(bf_opportunities)
             print(f"Bellman-Ford found {len(bf_opportunities)} opportunities")
 
         # Method 2: Triangle arbitrage detection
         if enable_triangle:
             print("\nRunning triangle arbitrage detection...")
-            triangle_opportunities = self.triangle_arbitrage.detect_opportunities(graph, None)
+            triangle_opportunities = self.triangle_arbitrage.detect_opportunities(
+                graph, None)
             opportunities.extend(triangle_opportunities)
             print(
                 f"Triangle arbitrage found {len(triangle_opportunities)} opportunities")
@@ -100,7 +105,8 @@ class IntegratedArbitrageDetector:
         # Method 3: Two-hop arbitrage detection
         if enable_two_hop:
             print("\nRunning two-hop arbitrage detection...")
-            two_hop_opportunities = self.two_hop_arbitrage.detect_opportunities(graph, None)
+            two_hop_opportunities = self.two_hop_arbitrage.detect_opportunities(
+                graph, None)
             opportunities.extend(two_hop_opportunities)
             print(
                 f"Two-hop arbitrage found {len(two_hop_opportunities)} opportunities")
@@ -108,16 +114,19 @@ class IntegratedArbitrageDetector:
         # Method 4: Exhaustive DFS detection
         if enable_exhaustive_dfs:
             print("\nRunning exhaustive DFS detection...")
-            dfs_opportunities = self.exhaustive_dfs.detect_opportunities(graph, None)
+            dfs_opportunities = self.exhaustive_dfs.detect_opportunities(
+                graph, None)
             opportunities.extend(dfs_opportunities)
-            print(f"Exhaustive DFS found {len(dfs_opportunities)} opportunities")
+            print(
+                f"Exhaustive DFS found {len(dfs_opportunities)} opportunities")
 
         # Deduplicate and rank
         opportunities = self._deduplicate_and_rank(opportunities)
-        
+
         # Apply risk evaluation if enabled
         if self.enable_risk_evaluation and self.risk_evaluator and opportunities:
-            print(f"\nApplying risk evaluation to {len(opportunities)} opportunities...")
+            print(
+                f"\nApplying risk evaluation to {len(opportunities)} opportunities...")
             opportunities = self._apply_risk_evaluation(opportunities, graph)
 
         print(f"\nTotal {len(opportunities)} arbitrage opportunities found")
@@ -155,58 +164,61 @@ class IntegratedArbitrageDetector:
             f"Deduplicated to {len(sorted_opportunities)} unique arbitrage opportunities")
         return sorted_opportunities
 
-    def _apply_risk_evaluation(self, opportunities: List[ArbitrageOpportunity], 
-                             graph: nx.DiGraph) -> List[ArbitrageOpportunity]:
+    def _apply_risk_evaluation(self, opportunities: List[ArbitrageOpportunity],
+                               graph: nx.DiGraph) -> List[ArbitrageOpportunity]:
         """
         Apply risk evaluation to filter and rank opportunities
         """
         if not opportunities or not self.risk_evaluator:
             return opportunities
-        
+
         risk_evaluated_opportunities = []
-        
+
         for opportunity in opportunities:
             # Extract edge data for this opportunity path
             edge_data_list = self._extract_edge_data(graph, opportunity.path)
-            
+
             # Evaluate risk
-            risk_result = self.risk_evaluator.evaluate_opportunity(opportunity, edge_data_list)
-            
+            risk_result = self.risk_evaluator.evaluate_opportunity(
+                opportunity, edge_data_list)
+
             # Only keep opportunities that are not marked as AVOID
             if risk_result['recommendation'] != 'AVOID':
                 # Update opportunity with risk-adjusted confidence
-                opportunity.confidence_score = min(opportunity.confidence_score, 
-                                                 1.0 - risk_result['risk_score'])
+                opportunity.confidence_score = min(opportunity.confidence_score,
+                                                   1.0 - risk_result['risk_score'])
                 risk_evaluated_opportunities.append(opportunity)
-        
-        # 按风险调整后的利润排序
+
+        # Sort by risk-adjusted profit ratio
         risk_evaluated_opportunities.sort(
-            key=lambda x: x.profit_ratio * x.confidence_score, 
+            key=lambda x: x.profit_ratio * x.confidence_score,
             reverse=True
         )
-        
+
         # Print risk evaluation summary
         total_original = len(opportunities)
         total_filtered = len(risk_evaluated_opportunities)
-        print(f"Risk evaluation filtered {total_original - total_filtered} high-risk opportunities")
-        print(f"Remaining {total_filtered} opportunities after risk assessment")
-        
+        print(
+            f"Risk evaluation filtered {total_original - total_filtered} high-risk opportunities")
+        print(
+            f"Remaining {total_filtered} opportunities after risk assessment")
+
         return risk_evaluated_opportunities
-    
+
     def _extract_edge_data(self, graph: nx.DiGraph, path: List[str]) -> List[Dict]:
         """
         Extract edge data from graph for a given path
         """
         edge_data_list = []
-        
+
         for i in range(len(path) - 1):
             from_token = path[i]
             to_token = path[i + 1]
-            
+
             if graph.has_edge(from_token, to_token):
                 edge_data = graph[from_token][to_token]
                 edge_data_list.append(edge_data)
-        
+
         return edge_data_list
 
     def print_opportunities(self, opportunities: List[ArbitrageOpportunity],

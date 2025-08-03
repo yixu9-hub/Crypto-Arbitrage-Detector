@@ -18,11 +18,11 @@ async def test_edge_pairs() -> List[EdgePairs]:
     # 调用主函数获取所有 token 对之间的边
     with open(pkl_path, "rb") as f:
         TokenLists: List[TokenInfo] = pickle.load(f)
-    print(f"✅ Loaded {len(TokenLists)} tokens from pickle file\n")
+    print(f" Loaded {len(TokenLists)} tokens from pickle file\n")
     
     edges: List[EdgePairs] = await get_edge_pairs(TokenLists)
 
-    print(f"✅ Total edge pairs returned: {len(edges)}\n")
+    print(f" Total edge pairs returned: {len(edges)}\n")
     
     for i, edge in enumerate(edges):
         print(f"--- Pair {i + 1} ---")

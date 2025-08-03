@@ -6,16 +6,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def visualize_graph(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8):
+def visualize_graph(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8, show_plot=True):
     '''
     Visualizes a directed graph with edge labels showing weight and total_fee.
-    Handles bidirectional edges by drawing them separately with labels on each side.
 
     Args:
         G: NetworkX directed graph to visualize
         figsize: Figure size as (width, height) tuple
         node_size: Size of nodes in the visualization
-        font_size: Font size for labels
+        font_size: font size for labels
+        show_plot: where to display the plot (False for Streamlit, True for console)
+
+    Returns:
+        fig: matplotlib figure object for Streamlit display, 
+        or call in console if show_plot is True(default)
     '''
     if G is None:
         raise ValueError("Graph cannot be None")
@@ -25,21 +29,17 @@ def visualize_graph(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8)
 
     if G.number_of_nodes() == 0:
         print("Warning: Graph has no nodes to visualize")
-        return
+        return None
 
     fig, ax = plt.subplots(figsize=figsize)
 
     # Create layout for better visualization
     pos = nx.spring_layout(G, k=3, iterations=50)
 
-    # Draw nodes with token symbols (shortened for readability)
+    # Draw nodes with token symbols
     node_labels = {}
     for node in G.nodes():
-        # Shorten long addresses for display
-        if len(node) > 10:
-            node_labels[node] = node[:6] + "..." + node[-4:]
-        else:
-            node_labels[node] = node
+        node_labels[node] = get_node_symbol(G, node)
 
     # Draw the graph
     nx.draw_networkx_nodes(G, pos, node_size=node_size,
@@ -82,40 +82,23 @@ def visualize_graph(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8)
                     ha='center', va='center', alpha=0.8,
                     bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.7))
 
-        elif len(edges) == 2:
-            # Bidirectional edges - draw with curvature and separate labels
-            for i, (from_node, to_node, edge_data) in enumerate(edges):
-                # Draw curved edges
-                connectionstyle = f"arc3,rad={0.15 if i == 0 else -0.15}"
+        else:
+            # Multiple edges (bidirectional or more) - draw all with straight lines
+            for from_node, to_node, edge_data in edges:
                 nx.draw_networkx_edges(G, pos, [(from_node, to_node)],
                                        edge_color='gray', arrows=True,
-                                       arrowsize=20, alpha=0.6,
-                                       connectionstyle=connectionstyle, ax=ax)
+                                       arrowsize=20, alpha=0.6, ax=ax)
 
-                # Calculate positions for labels
+            # For multiple edges, place label at midpoint
+            if edges:
+                first_edge = edges[0]
+                from_node, to_node, edge_data = first_edge
+
                 x1, y1 = pos[from_node]
                 x2, y2 = pos[to_node]
-
-                # Calculate curve midpoint and offset direction
                 mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
 
-                # Calculate perpendicular direction for label offset
-                dx = x2 - x1
-                dy = y2 - y1
-                length = np.sqrt(dx**2 + dy**2)
-                if length > 0:
-                    # Normalize and get perpendicular vector
-                    perp_x = -dy / length
-                    perp_y = dx / length
-
-                    # Offset distance for label placement
-                    offset_distance = 0.1 if i == 0 else -0.1
-                    label_x = mid_x + perp_x * offset_distance
-                    label_y = mid_y + perp_y * offset_distance
-                else:
-                    label_x, label_y = mid_x, mid_y
-
-                # Create separate labels for each direction
+                # Show representative information
                 weight = edge_data.get('weight', 'N/A')
                 total_fee = edge_data.get('total_fee', 'N/A')
                 weight_str = f"{weight:.4f}" if isinstance(
@@ -123,50 +106,64 @@ def visualize_graph(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8)
                 total_fee_str = str(total_fee) if isinstance(
                     total_fee, (int, float)) else str(total_fee)
 
-                # Shorter node names for cleaner display
-                from_short = from_node[:4] if len(from_node) > 4 else from_node
-                to_short = to_node[:4] if len(to_node) > 4 else to_node
+                # Use symbols for display
+                from_symbol = edge_data['from_symbol']
+                to_symbol = edge_data['to_symbol']
 
-                label_text = f"{from_short}→{to_short}\nW:{weight_str}\nF:{total_fee_str}"
+                label_text = f"{from_symbol}↔{to_symbol}\nW:{weight_str}\nF:{total_fee_str}"
 
-                ax.text(label_x, label_y, label_text, fontsize=font_size-2,
-                        ha='center', va='center', alpha=0.9,
-                        bbox=dict(boxstyle='round,pad=0.15',
-                                  facecolor='lightblue' if i == 0 else 'lightgreen',
-                                  alpha=0.8, edgecolor='gray'))
+                ax.text(mid_x, mid_y, label_text, fontsize=font_size-1,
+                        ha='center', va='center', alpha=0.8,
+                        bbox=dict(boxstyle='round,pad=0.2', facecolor='yellow', alpha=0.7))
 
-    plt.title("Token Exchange Graph (Bidirectional)\nEach edge shows its own data",
+    plt.title("Token Exchange Graph\nShowing trading pairs and weights",
               fontsize=14, fontweight='bold')
     plt.axis('off')  # Turn off axis
 
     # Add legend
-    legend_text = ("Legend:\nW: Weight (trading efficiency)\nF: Total Fee\n"
-                   "Blue labels: First direction\nGreen labels: Reverse direction")
+    legend_text = ("Legend:\nWeight shows trading efficiency\n"
+                   "Yellow labels: Bidirectional pairs\n"
+                   "White labels: Single direction")
     plt.text(0.02, 0.98, legend_text, transform=ax.transAxes,
              fontsize=10, verticalalignment='top',
              bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
 
     plt.tight_layout()
-    plt.show()
+
+    # Only show plot if in console (not for streamlit)
+    if show_plot:
+        plt.show()
+
     return fig
 
 
-def print_graph_statistics(G: nx.DiGraph):
+# direct streamlit-specific visualization function, call in app.py
+def visualize_graph_for_streamlit(G: nx.DiGraph, figsize=(12, 8), node_size=1000, font_size=8):
     '''
-    Print comprehensive graph statistics including nodes, edges, and bidirectional pairs.
-    
+    Streamlit graph visualization function.
+
+    Returns:
+        fig: matplotlib figure object for st.pyplot()
+    '''
+    return visualize_graph(G, figsize=figsize, node_size=node_size,
+                           font_size=font_size, show_plot=False)
+
+
+def get_graph_statistics(G: nx.DiGraph) -> dict:
+    '''
+    Get comprehensive graph statistics as a dictionary (Streamlit-friendly).
+
     Args:
         G: NetworkX directed graph
+
+    Returns:
+        dict: Graph statistics
     '''
     if G is None:
         raise ValueError("Graph cannot be None")
 
     if not isinstance(G, nx.DiGraph):
         raise TypeError(f"Expected nx.DiGraph, got {type(G)}")
-
-    print(f"\nGraph Statistics:")
-    print(f"Number of nodes (tokens): {G.number_of_nodes()}")
-    print(f"Number of edges (trading pairs): {G.number_of_edges()}")
 
     # Check for bidirectional edges
     bidirectional_pairs = 0
@@ -181,17 +178,59 @@ def print_graph_statistics(G: nx.DiGraph):
         if len(edges) == 2:
             bidirectional_pairs += 1
 
-    print(f"Bidirectional token pairs: {bidirectional_pairs}")
-    print(f"Unidirectional edges: {G.number_of_edges() - bidirectional_pairs * 2}")
+    return {
+        'total_nodes': G.number_of_nodes(),
+        'total_edges': G.number_of_edges(),
+        'bidirectional_pairs': bidirectional_pairs,
+        'unidirectional_edges': G.number_of_edges() - bidirectional_pairs * 2
+    }
 
 
-def print_edge_summary(G: nx.DiGraph, max_edges=20):
+def print_graph_statistics(G: nx.DiGraph):
     '''
-    Print a summary of edges for small graphs or refer to detailed function for large graphs.
-    
+    Print comprehensive graph statistics including nodes, edges, and bidirectional pairs.
+
     Args:
         G: NetworkX directed graph
-        max_edges: Maximum number of edges to display in summary
+    '''
+    stats = get_graph_statistics(G)
+
+    print(f"\nGraph Statistics:")
+    print(f"Number of nodes (tokens): {stats['total_nodes']}")
+    print(f"Number of edges (trading pairs): {stats['total_edges']}")
+    print(f"Bidirectional token pairs: {stats['bidirectional_pairs']}")
+    print(f"Unidirectional edges: {stats['unidirectional_edges']}")
+
+
+def get_node_symbol(graph: nx.DiGraph, node: str) -> str:
+    """
+    Get display symbol for a node address
+
+    Args:
+        graph: The graph containing edge data
+        node: Node address to get symbol for
+
+    Returns:
+        Symbol string or shortened address if not found
+    """
+    # Check if node exists in graph
+    for from_node, to_node, edge_data in graph.edges(data=True):
+        if node == from_node:
+            return edge_data['from_symbol']  # Get symbol directly
+        elif node == to_node:
+            return edge_data['to_symbol']
+
+
+def get_edge_summary(G: nx.DiGraph, max_edges=20) -> list:
+    '''
+    Get edge summary as a list of dictionaries (Streamlit-friendly).
+
+    Args:
+        G: NetworkX directed graph
+        max_edges: Maximum number of edges to include
+
+    Returns:
+        list: List of edge dictionaries with summary info
     '''
     if G is None:
         raise ValueError("Graph cannot be None")
@@ -199,20 +238,56 @@ def print_edge_summary(G: nx.DiGraph, max_edges=20):
     if not isinstance(G, nx.DiGraph):
         raise TypeError(f"Expected nx.DiGraph, got {type(G)}")
 
-    # Print detailed edge information for small graphs only
-    if G.number_of_edges() <= max_edges:
-        print(f"\nEdge Summary:")
-        for i, (from_node, to_node, edge_data) in enumerate(G.edges(data=True), 1):
-            # Smart truncation: keep symbol names, truncate long addresses
-            from_short = from_node if len(from_node) <= 10 else from_node[:8] + "..." + from_node[-4:]
-            to_short = to_node if len(to_node) <= 10 else to_node[:8] + "..." + to_node[-4:]
-            print(f"{i:2d}. {from_short} -> {to_short}")
-            print(f"    Weight: {edge_data.get('weight', 'N/A')}")
-            print(f"    Total Fee: {edge_data.get('total_fee', 'N/A')}")
-            print(f"    Price Ratio: {edge_data.get('price_ratio', 'N/A')}")
-            print(f"    Slippage BPS: {edge_data.get('slippage_bps', 'N/A')}")
-    else:
-        print(f"\nGraph has {G.number_of_edges()} edges. Use print_edge_details() for full edge information.")
+    edges_data = []
+
+    for i, (from_node, to_node, edge_data) in enumerate(G.edges(data=True), 1):
+        if i > max_edges:
+            break
+
+        # Directly use symbols from edge data
+        from_display = edge_data['from_symbol']
+        to_display = edge_data['to_symbol']
+
+        edges_data.append({
+            'index': i,
+            'from_token': from_display,
+            'to_token': to_display,
+            'weight': edge_data.get('weight', 'N/A'),
+            'total_fee': edge_data.get('total_fee', 'N/A'),
+            'price_ratio': edge_data.get('price_ratio', 'N/A'),
+            'slippage_bps': edge_data.get('slippage_bps', 'N/A'),
+            'price_impact_pct': edge_data.get('price_impact_pct', 'N/A')
+        })
+
+    return edges_data
+
+
+def print_edge_summary(G: nx.DiGraph, max_edges=20):
+    '''
+    Print a summary of edges for small graphs or refer to detailed function for large graphs.
+
+    Args:
+        G: NetworkX directed graph
+        max_edges: Maximum number of edges to display in summary
+    '''
+    edges_data = get_edge_summary(G, max_edges)
+
+    if len(edges_data) == 0:
+        print(
+            f"\nGraph has {G.number_of_edges()} edges. Use print_edge_details() for full edge information.")
+        return
+
+    print(f"\nEdge Summary:")
+    for edge in edges_data:
+        print(f"{edge['index']:2d}. {edge['from_token']} -> {edge['to_token']}")
+        print(f"    Weight: {edge['weight']}")
+        print(f"    Total Fee: {edge['total_fee']}")
+        print(f"    Price Ratio: {edge['price_ratio']}")
+        print(f"    Slippage BPS: {edge['slippage_bps']}")
+
+    if G.number_of_edges() > max_edges:
+        print(
+            f"\nShowing {max_edges} of {G.number_of_edges()} edges. Use print_edge_details() for full information.")
 
 
 def print_edge_details(G: nx.DiGraph):
@@ -232,24 +307,30 @@ def print_edge_details(G: nx.DiGraph):
     print("=" * 80)
 
     for i, (from_node, to_node, edge_data) in enumerate(G.edges(data=True), 1):
-        # Address for both start and end for better identification
-        from_short = from_node if len(from_node) <= 15 else from_node[:10] + "..." + from_node[-4:]
-        to_short = to_node if len(to_node) <= 15 else to_node[:10] + "..." + to_node[-4:]
+        # Directly use symbols from edge data
+        from_display = edge_data['from_symbol']
+        to_display = edge_data['to_symbol']
 
-        print(f"{i:3d}. {from_short} -> {to_short}")
+        print(f"{i:3d}. {from_display} -> {to_display}")
         print(f"     Weight: {edge_data.get('weight', 'N/A')}")
         print(f"     Total Fee: {edge_data.get('total_fee', 'N/A')}")
         print(f"     Price Ratio: {edge_data.get('price_ratio', 'N/A')}")
-        print(f"     Price Impact: {edge_data.get('price_impact_pct', 'N/A')}%")
+        print(
+            f"     Price Impact: {edge_data.get('price_impact_pct', 'N/A')}%")
         print(f"     Slippage BPS: {edge_data.get('slippage_bps', 'N/A')}")
         print(f"     Platform Fee: {edge_data.get('platform_fee', 'N/A')}")
+
+        # Display symbol information
+        from_symbol = edge_data['from_symbol']
+        to_symbol = edge_data['to_symbol']
+        print(f"     Symbols: {from_symbol} -> {to_symbol}")
         print("-" * 60)
 
 
 def analyze_graph(G: nx.DiGraph, show_visualization=True, show_edge_summary=True, show_statistics=True):
     '''
     Comprehensive graph analysis function that combines statistics, visualization, and edge information.
-    
+
     Args:
         G: NetworkX directed graph
         show_visualization: Whether to display the graph visualization
@@ -262,15 +343,15 @@ def analyze_graph(G: nx.DiGraph, show_visualization=True, show_edge_summary=True
     if not isinstance(G, nx.DiGraph):
         raise TypeError(f"Expected nx.DiGraph, got {type(G)}")
 
-    print("📊 Graph Analysis Report")
+    print("Graph Analysis Report")
     print("=" * 50)
-    
+
     if show_statistics:
         print_graph_statistics(G)
-    
+
     if show_edge_summary:
         print_edge_summary(G)
-    
+
     if show_visualization and G.number_of_nodes() > 0:
-        print("\n🎨 Displaying graph visualization...")
+        print("\nDisplaying graph visualization...")
         visualize_graph(G)

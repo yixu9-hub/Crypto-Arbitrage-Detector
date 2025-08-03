@@ -1,6 +1,9 @@
 '''
 Exhaustive DFS with Profit Pruning
+This module implements an exhaustive DFS algorithm to find arbitrage 
+opportunities.
 '''
+
 import networkx as nx
 import math
 import sys
@@ -8,6 +11,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from typing import List, Optional, Set, Dict
 from utils.data_structures import ArbitrageOpportunity
+from utils.graph_utils import get_node_symbol
 
 
 class ExhaustiveDFSArbitrage:
@@ -44,7 +48,7 @@ class ExhaustiveDFSArbitrage:
         Use exhaustive DFS to find all profitable arbitrage cycles
         """
         opportunities = []
-        # 
+        
         self.paths_explored = 0
         self.paths_pruned = 0
         self.cycles_found = 0
@@ -219,7 +223,9 @@ class ExhaustiveDFSArbitrage:
             confidence_score = min(1.0, max(0.0, net_profit_ratio * 10))
 
             # Generate path symbols
-            path_symbols = [f"{addr[:4]}...{addr[-4:]}" for addr in path]
+            path_symbols = []
+            for addr in path:
+                path_symbols.append(get_node_symbol(graph, addr))
 
             return ArbitrageOpportunity(
                 path=path,

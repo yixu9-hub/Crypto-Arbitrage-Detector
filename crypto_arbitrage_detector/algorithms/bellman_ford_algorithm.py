@@ -8,6 +8,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from typing import List, Optional
 from utils.data_structures import ArbitrageOpportunity
+from utils.graph_utils import get_node_symbol
 
 
 class BellmanFordArbitrage:
@@ -172,7 +173,11 @@ class BellmanFordArbitrage:
             
             if next_node == current and len(cycle) >= 2:
                 cycle.append(current)  # Complete the cycle
-                print(f"negative cycle detected: {[node[:8] + '...' for node in cycle]}")
+                cycle_symbols = []
+                for node in cycle:
+                    cycle_symbols.append(get_node_symbol(graph, node))
+                
+                print(f"negative cycle detected: {cycle_symbols}")
                 return cycle
             
         except Exception as e:
@@ -184,9 +189,7 @@ class BellmanFordArbitrage:
         """
         Create arbitrage opportunity object from path
         """
-        path_display = []
-        for i in path:
-            path_display.append(i[:6]+'...') # Display first 6 characters
+        path_display = [get_node_symbol(graph, token) for token in path]
         print(f" Creating opportunity from path: {path_display}")
 
         try:
@@ -205,7 +208,9 @@ class BellmanFordArbitrage:
                 to_token = path[i + 1]
 
                 if not graph.has_edge(from_token, to_token):
-                    print(f"Missing edge: {from_token[:6]}... -> {to_token[:6]}...")
+                    from_display = get_node_symbol(graph, from_token)
+                    to_display = get_node_symbol(graph, to_token)
+                    print(f"Missing edge: {from_display} -> {to_display}")
                     return None  # Invalid path
 
                 edge_data = graph[from_token][to_token]
@@ -216,7 +221,9 @@ class BellmanFordArbitrage:
 
                 slippage_decimal = slippage_bps / 10000.0
 
-                print(f"Trade {i+1}: {from_token[:6]}... -> {to_token[:6]}..., weight: {weight:.6f}")
+                from_display = get_node_symbol(graph, from_token)
+                to_display = get_node_symbol(graph, to_token)
+                print(f"Trade {i+1}: {from_display} -> {to_display}, weight: {weight:.6f}")
 
                 total_weight += weight
                 total_slippage += slippage_decimal
@@ -256,8 +263,10 @@ class BellmanFordArbitrage:
                 (1 - slippage_risk) * (1 - price_impact_risk)
             confidence_score = max(0.0, min(1.0, confidence_score))
 
-            # Generate path symbols (for display)
-            path_symbols = [f"{addr[:4]}...{addr[-4:]}" for addr in path]
+            # Generate path symbols
+            path_symbols = []
+            for addr in path:
+                path_symbols.append(get_node_symbol(graph, addr))
 
             return ArbitrageOpportunity(
                 path=path,

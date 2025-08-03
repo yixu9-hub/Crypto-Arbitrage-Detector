@@ -3,7 +3,6 @@ from typing import List
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo
 
 
-# ✅ 示例测试数据
 test_tokens = [
     TokenInfo(
         address="So11111111111111111111111111111111111111112",
