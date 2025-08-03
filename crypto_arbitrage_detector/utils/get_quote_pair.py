@@ -1,15 +1,13 @@
-import math
-from crypto_arbitrage_detector.utils.enrich_gas_fee import enrich_responses_with_gas_fee
-from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api
-from crypto_arbitrage_detector.utils.data_structures import TokenInfo, EdgePairs
-from typing import List, Dict
-import aiohttp
-import asyncio
-import sys
-import os
+import sys, os
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
+import asyncio
+import aiohttp
+from typing import List, Dict
+from crypto_arbitrage_detector.utils.data_structures import TokenInfo, EdgePairs
+from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api
+from crypto_arbitrage_detector.utils.enrich_gas_fee import enrich_responses_with_gas_fee
 
 
 # Function to prepare single request from Jupiter quote API
@@ -34,7 +32,7 @@ async def fetch_quote(
         "inputMint": input_mint,
         "outputMint": output_mint,
         "amount": amount
-        # "slippageBps": jupiter_quote_api["default_slippage_bps"]
+        #"slippageBps": jupiter_quote_api["default_slippage_bps"]
     }
     # Set headers to mimic a browser request
     headers = jupiter_quote_api["headers"]
@@ -91,10 +89,9 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
 
     # execute all requests concurrently
         responses = await asyncio.gather(*tasks)
-        responses = [
-            r for r in responses if r and "inputMint" in r and "routePlan" in r]
+        responses = [r for r in responses if r and "inputMint" in r and "routePlan" in r]
         responses = await enrich_responses_with_gas_fee(responses)
-
+    
     # generate a price map in order to calculate the total_fee in SOL
     price_map = generate_price_map_from_responses(responses)
 
@@ -130,7 +127,7 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
                     platform_fee = float(platform_fee_info.get("amount", 0))
                 else:
                     platform_fee = 0.0
-
+                
                 out_mint = data["outputMint"]
                 out_amount_in_sol = out_amount * price_map.get(out_mint, 0.0)
 
