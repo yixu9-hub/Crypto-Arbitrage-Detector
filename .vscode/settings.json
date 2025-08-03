@@ -3,5 +3,7 @@
         "./crypto-arbitrage-detector/utils",
         "./crypto-arbitrage-detector/algorithms",
         "./crypto-arbitrage-detector"
-    ]
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
 }
