@@ -7,7 +7,7 @@ import asyncio
 import aiohttp
 from typing import List, Dict
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo, EdgePairs
-from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api
+from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api, jupiter_swap_api, solana_rpc_api
 from crypto_arbitrage_detector.utils.enrich_gas_fee import enrich_responses_with_gas_fee
 
 
@@ -18,7 +18,12 @@ async def fetch_quote(
         input_mint: str,
         output_mint: str,
         # semaphore: asyncio.Semaphore,
-        amount: int = jupiter_quote_api["default_tx_amount"]) -> Dict:
+        amount: int = jupiter_quote_api["default_tx_amount"],
+        quote_url: str = jupiter_quote_api["base_url"],
+        api_key: str = jupiter_quote_api["api_key"],
+        from_symbol=None,
+        to_symbol=None
+        ) -> Dict:
     '''
     Fetch quote from Jupiter API for a given token pair.
     Args:
@@ -36,11 +41,16 @@ async def fetch_quote(
         #"slippageBps": jupiter_quote_api["default_slippage_bps"]
     }
     # Set headers to mimic a browser request
-    headers = jupiter_quote_api["headers"]
+    headers = jupiter_quote_api["headers"].copy()
+    if api_key:
+        headers.update({
+            "Content-Type": "application/json",
+            "x-api-key": api_key
+        })
     # async with semaphore:
     try:
         async with session.get(
-            jupiter_quote_api["base_url"],
+            url=quote_url,
             params=params,
             headers=headers,
             # proxy=strategy_config.PROXY_URL,
@@ -50,6 +60,8 @@ async def fetch_quote(
             # print(f"[DEBUG] Request URL: {resp.url}")
             if resp.status == 200:
                 quote_data = await resp.json()
+                quote_data["from_symbol"] = from_symbol
+                quote_data["to_symbol"] = to_symbol
                 # print(f"[DEBUG] Response Data: {quote_data}")
                 return quote_data
             else:
@@ -64,7 +76,14 @@ async def fetch_quote(
 # Function to request data from Jupiter API for edge pairs
 
 
-async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_quote_api["default_tx_amount"]) -> List[EdgePairs]:
+async def get_edge_pairs(
+        token_list: List[TokenInfo], 
+        tx_amount: int = jupiter_quote_api["default_tx_amount"],
+        api_key: str = jupiter_quote_api["api_key"],
+        quote_url: str = jupiter_quote_api["base_url"],
+        swap_url: str = jupiter_swap_api["base_url"],
+        solana_rpc: str = solana_rpc_api["base_url"]
+        ) -> List[EdgePairs]:
     '''
     Fetch edge pairs from Jupiter API for all token combinations.
     Args:
@@ -85,13 +104,17 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
                         token_in.address,
                         token_out.address,
                         # semaphore,
-                        tx_amount
+                        tx_amount,
+                        quote_url=quote_url,
+                        api_key=api_key,
+                        from_symbol=token_in.symbol,
+                        to_symbol=token_out.symbol
                     ))
 
     # execute all requests concurrently
         responses = await asyncio.gather(*tasks)
         responses = [r for r in responses if r and "inputMint" in r and "routePlan" in r]
-        responses = await enrich_responses_with_gas_fee(responses)
+        responses = await enrich_responses_with_gas_fee(responses, api_key, swap_url, solana_rpc)
     
     # generate a price map in order to calculate the total_fee in SOL
     price_map = generate_price_map_from_responses(responses)
@@ -102,8 +125,6 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
             try:
                 out_amount = float(data["outAmount"])
                 in_amount = float(data["inAmount"])
-                price_ratio = out_amount / in_amount
-                weight = -math.log(price_ratio)
 
                 # Calculate total fee in SOL
                 total_fee_sol = 0.0
@@ -134,11 +155,16 @@ async def get_edge_pairs(token_list: List[TokenInfo], tx_amount: int = jupiter_q
 
                 in_mint = data["inputMint"]
                 in_amount_in_sol = in_amount * price_map.get(in_mint, 0.0)
+                
+                price_ratio = out_amount_in_sol / in_amount_in_sol
+                weight = -math.log(price_ratio)
 
                 # Create EdgePairs object
                 edge = EdgePairs(
                     from_token=data["inputMint"],
                     to_token=data["outputMint"],
+                    from_symbol=data["from_symbol"],
+                    to_symbol=data["to_symbol"],
                     in_amount=in_amount_in_sol,
                     out_amount=out_amount_in_sol,
                     price_ratio=price_ratio,
