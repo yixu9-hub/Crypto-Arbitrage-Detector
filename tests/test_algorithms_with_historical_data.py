@@ -11,7 +11,7 @@ import contextlib
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from tests.arbitrage_test_data_new import new_arbitrage_test_data
+from data.historical_data import new_arbitrage_test_data
 from crypto_arbitrage_detector.utils.graph_structure import build_graph_from_edge_lists
 from crypto_arbitrage_detector.algorithms.bellman_ford_algorithm import BellmanFordArbitrage
 from crypto_arbitrage_detector.algorithms.triangle_arbitrage_algorithm import TriangleArbitrage

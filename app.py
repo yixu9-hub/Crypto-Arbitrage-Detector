@@ -14,7 +14,7 @@ from typing import List, Dict, Tuple, Optional
 import numpy as np
 import hashlib
 
-from crypto_arbitrage_detector.utils.helper import check_token_file, fetch_jupiter_tokens, fetch_enriched_tokens, load_popular_tokens, retrive_edges
+from frontend_utils import check_token_file, fetch_jupiter_tokens, fetch_enriched_tokens, load_popular_tokens, retrive_edges
 from crypto_arbitrage_detector.utils.graph_structure import build_graph_from_edge_lists
 from crypto_arbitrage_detector.utils.graph_utils import analyze_graph, visualize_graph
 from crypto_arbitrage_detector.utils.data_structures import ArbitrageOpportunity

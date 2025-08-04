@@ -10,7 +10,7 @@ from crypto_arbitrage_detector.utils.graph_utils import analyze_graph
 from crypto_arbitrage_detector.utils.transaction import execute_path
 from crypto_arbitrage_detector.utils.get_quote_pair import get_edge_pairs
 from crypto_arbitrage_detector.scripts.jupiter_client import JupiterAPIClient
-from tests.arbitrage_test_data import arbitrage_test_edges
+from data.historical_data import new_arbitrage_test_data
 from crypto_arbitrage_detector.utils.data_structures import VolumeRanking, TokenInfo, EdgePairs, ArbitrageOpportunity
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
@@ -32,17 +32,12 @@ async def handle_option_2():
     threshold = get_user_input("Enter minimum profit threshold (e.g., 0.005)", 0.005, is_float=True)
     risk_input = input("Enable risk evaluation? (y/n) [default: y]: ").strip().lower()
     risk_eval = risk_input != "n"
-    graph = build_graph_from_edge_lists(arbitrage_test_edges)
+    graph = build_graph_from_edge_lists(new_arbitrage_test_data)
     detector = IntegratedArbitrageDetector(min_profit_threshold=threshold, enable_risk_evaluation=risk_eval)
     opportunities = detector.detect_arbitrage(graph, source_token="any_token", enable_bellman_ford=True,
                                               enable_triangle=True, enable_two_hop=True, enable_exhaustive_dfs=True)
     print(f"Total opportunities found: {len(opportunities)}")
-    if opportunities:
-        print(f"\nTop {min(10, len(opportunities))} opportunities:")
-        for i, opp in enumerate(opportunities[:5], 1):
-            print(opp)
-    else:
-        print("No arbitrage opportunities found.")
+    detector.print_opportunities(opportunities)
     analyze_graph(graph, show_visualization=True, show_statistics=True, show_edge_summary=False)
     if opportunities:
         choice = input("Would you like to execute a trade? (y/n): ").strip().lower()

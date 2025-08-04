@@ -125,7 +125,7 @@ async def execute_path(opportunity, initial_amount, user_public_key, user_privat
                         "0x1781": "Exact out amount not matched",
                         "0x1789": "Do not have ATA"
                     }.get(error_code, "Unknown custom error")
-                    print(f"❌ Error sending transaction: {error_code} → {friendly_message}")
+                    print(f"❌ Error sending transaction: {error_code} → {friendly_message} you may need to have suffuficient balance of the input token in your wallet.\n(This issue may also occur if the last transaction was too fast and the updated balance hasn't been reflected on-chain yet.)")
                 else:
                     print(f"❌ Error sending transaction: {e}")
                 break

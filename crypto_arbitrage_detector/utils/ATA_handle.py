@@ -15,9 +15,6 @@ from solana.rpc.commitment import Confirmed
 from spl.token.instructions import create_associated_token_account as create_ata_ix_solana
 
 
-
-
-
 # Token program + ATA program (固定地址)
 #TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
 #ASSOCIATED_TOKEN_PROGRAM_ID = Pubkey.from_string("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")

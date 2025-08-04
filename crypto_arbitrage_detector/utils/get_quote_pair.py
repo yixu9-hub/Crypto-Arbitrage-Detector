@@ -1,11 +1,11 @@
 import math
 import sys, os
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-if BASE_DIR not in sys.path:
-    sys.path.insert(0, BASE_DIR)
 import asyncio
 import aiohttp
 from typing import List, Dict
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo, EdgePairs
 from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api, jupiter_swap_api, solana_rpc_api
 from crypto_arbitrage_detector.utils.enrich_gas_fee import enrich_responses_with_gas_fee

@@ -201,7 +201,7 @@ class MassVolumeRanker:
                 token_data[address]['creation_date'] = datetime.fromtimestamp(pair.get('pairCreatedAt', 0)/1000).strftime("%Y-%m-%d %H:%M:%S")
                 
                 if not token_data[address]['symbol']:
-                    token_data[address]['symbol'] = token_info.get('symbol', '')
+                    token_data[address]['symbol'] = base_token.get('symbol', '')
                         
             except Exception:
                 continue
