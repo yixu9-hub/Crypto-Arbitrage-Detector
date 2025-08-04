@@ -1,8 +1,18 @@
 graph_utils: 
--add new method to use symbol for display instead of long address
--add seperate interface for console and streamlit frontend
-检查是否有无用的函数
+- add new method to use symbol for display instead of long address
+- add seperate interface for console and streamlit frontend
 
-配置放在一处，可以用dictionary格式
+graph_structure：
+- 修改build_graph_from_edge_lists()保存symbol信息到边属性中
+= 现在图的边包含from_symbol和to_symbol属性
 
-检查单位问题
+algorithms + risk_evaluator:
+- add config as default, eliminate magic numbers
+- delete unused function
+- enhance readability
+
+检查单位问题：
+- 修改了price_impact_pct在算法中的应用
+- gas fee: lamports→SOL
+
+bellman-ford算法存在的问题

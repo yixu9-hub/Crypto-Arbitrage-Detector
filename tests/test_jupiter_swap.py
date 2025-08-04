@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from crypto_arbitrage_detector.utils.enrich_gas_fee import enrich_responses_with_gas_fee
 
 async def main():
-    # 原始 Jupiter quoteResponse（你从 quote API 拿到的）
+    # origin Jupiter quoteResponse（from quote API）
     responses = [
         {
             "inputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",

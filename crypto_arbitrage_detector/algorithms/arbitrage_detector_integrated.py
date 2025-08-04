@@ -1,4 +1,12 @@
-# Integrated Arbitrage Detector
+"""
+this module integrates multiple arbitrage detection algorithms 
+into a single interface:
+- Bellman-Ford for negative cycle detection
+- Triangle arbitrage detection
+- Two-hop arbitrage detection
+- Exhaustive DFS
+"""
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -12,38 +20,54 @@ from exhaustive_dfs_algorithm import ExhaustiveDFSArbitrage
 from bellman_ford_algorithm import BellmanFordArbitrage
 from triangle_arbitrage_algorithm import TriangleArbitrage
 from two_hop_arbitrage_algorithm import TwoHopArbitrage
+from configs.strategy_config import get_algorithm_config
 
 
 class IntegratedArbitrageDetector:
     """Arbitrage Opportunity Detector - Main Coordinator"""
 
     def __init__(self,
-                 min_profit_threshold: float = 0.005,  # Minimum profit threshold 0.5%
-                 max_hops: int = 4,                   # Maximum hops
-                 # Base trading amount (SOL)
-                 base_amount: float = 1.0,
-                 enable_risk_evaluation: bool = True):  # Enable risk assessment
+                 min_profit_threshold: float = None,
+                 max_hops: int = None,
+                 base_amount: float = None,
+                 enable_risk_evaluation: bool = None):
         """
         Initialize Integrated Arbitrage Detector
 
         Args:
-            min_profit_threshold: Minimum profit threshold (0.005 = 0.5%)
+            min_profit_threshold: Minimum profit threshold
             max_hops: Maximum allowed hops
-            base_amount: Base trading amount (SOL)
+            base_amount: Base trading amount in SOL
+            enable_risk_evaluation: Enable risk assessment
         """
-        self.min_profit_threshold = min_profit_threshold
-        self.max_hops = max_hops
-        self.base_amount = base_amount
-        self.enable_risk_evaluation = enable_risk_evaluation
+        # Get algorithm configuration
+        config = get_algorithm_config("integrated_detector")
+        
+        # Set parameters from config
+        self.min_profit_threshold = config["min_profit_threshold"]
+        self.max_hops = config["max_hops"]
+        self.base_amount = config["base_amount"]
+        self.enable_risk_evaluation = config["enable_risk_evaluation"]
+        
+        # Override with provided parameters if not None for direct control
+        if min_profit_threshold is not None:
+            self.min_profit_threshold = min_profit_threshold
+        if max_hops is not None:
+            self.max_hops = max_hops
+        if base_amount is not None:
+            self.base_amount = base_amount
+        if enable_risk_evaluation is not None:
+            self.enable_risk_evaluation = enable_risk_evaluation
 
+        # Initialize algorithms with configuration
         self.bellman_ford = BellmanFordArbitrage(
-            min_profit_threshold, max_hops, base_amount)
+            self.min_profit_threshold, self.max_hops, self.base_amount)
         self.triangle_arbitrage = TriangleArbitrage(
-            min_profit_threshold, max_hops, base_amount)
+            self.min_profit_threshold, self.max_hops, self.base_amount)
         self.two_hop_arbitrage = TwoHopArbitrage(
-            min_profit_threshold, max_hops, base_amount)
+            self.min_profit_threshold, self.max_hops, self.base_amount)
         self.exhaustive_dfs = ExhaustiveDFSArbitrage(
-            min_profit_threshold, max_hops, base_amount)
+            self.min_profit_threshold, self.max_hops, self.base_amount)
 
         # Initialize risk evaluator if enabled
         if self.enable_risk_evaluation:
@@ -52,11 +76,11 @@ class IntegratedArbitrageDetector:
             self.risk_evaluator = None
 
         print(f"IntegratedArbitrageDetector initialized:")
-        print(f"   Min profit threshold: {min_profit_threshold*100:.1f}%")
-        print(f"   Max hops: {max_hops}")
-        print(f"   Base amount: {base_amount} SOL")
+        print(f"   Min profit threshold: {self.min_profit_threshold*100:.1f}%")
+        print(f"   Max hops: {self.max_hops}")
+        print(f"   Base amount: {self.base_amount} SOL")
         print(
-            f"   Risk evaluation: {'Enabled' if enable_risk_evaluation else 'Disabled'}")
+            f"   Risk evaluation: {'Enabled' if self.enable_risk_evaluation else 'Disabled'}")
         print(f"   Available algorithms: Bellman-Ford, Triangle, Two-Hop, Exhaustive DFS")
 
     def detect_arbitrage(self, graph: nx.DiGraph,
@@ -153,7 +177,8 @@ class IntegratedArbitrageDetector:
                 if opp.profit_ratio > unique_opportunities[path_key].profit_ratio:
                     unique_opportunities[path_key] = opp
 
-        # Sort by profit ratio
+        # Sort by profit ratio, use a (profit_ratio, confidence_score) tuple,
+        #  with confidence as second factor
         sorted_opportunities = sorted(
             unique_opportunities.values(),
             key=lambda x: (x.profit_ratio, x.confidence_score),
@@ -189,7 +214,8 @@ class IntegratedArbitrageDetector:
                                                    1.0 - risk_result['risk_score'])
                 risk_evaluated_opportunities.append(opportunity)
 
-        # Sort by risk-adjusted profit ratio
+        # Sort by risk-adjusted profit ratio 
+        # by multiplying profit ratio with confidence score
         risk_evaluated_opportunities.sort(
             key=lambda x: x.profit_ratio * x.confidence_score,
             reverse=True
