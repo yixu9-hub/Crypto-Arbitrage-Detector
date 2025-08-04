@@ -1,8 +1,13 @@
 """
 Risk Evaluator for Arbitrage Opportunities
-考虑滑点风险，gas fee和交易复杂度（hop count）
+This module evaluates the risk of arbitrage opportunities based on factors:
+- Slippage risk
+- Gas fee
+- Transaction complexity (hop count)
 """
+
 from utils.data_structures import ArbitrageOpportunity
+from configs.strategy_config import get_risk_config
 from typing import List, Dict, Optional
 import math
 import sys
@@ -17,20 +22,42 @@ class ArbitrageRiskEvaluator:
     """
 
     def __init__(self,
-                 max_acceptable_slippage: float = 0.02,
-                 max_gas_cost_ratio: float = 0.1,
-                 min_confidence_threshold: float = 0.3):
+                 max_acceptable_slippage: float = None,
+                 max_gas_cost_ratio: float = None,
+                 min_confidence_threshold: float = None):
         """
-        Initialize risk evaluator with conservative defaults
+        Initialize risk evaluator
 
         Args:
             max_acceptable_slippage: Maximum acceptable total slippage percentage
             max_gas_cost_ratio: Maximum gas cost as ratio of expected profit
-            min_confidence_threshold: Minimum confidence score to consider
+            min_confidence_threshold: Minimum confidence score to consider 
         """
-        self.max_acceptable_slippage = max_acceptable_slippage
-        self.max_gas_cost_ratio = max_gas_cost_ratio
-        self.min_confidence_threshold = min_confidence_threshold
+        # Get risk configuration
+        risk_config = get_risk_config()
+        
+        # Set parameters from config
+        self.max_acceptable_slippage = risk_config["max_acceptable_slippage"]
+        self.max_gas_cost_ratio = risk_config["max_gas_cost_ratio"]
+        self.min_confidence_threshold = risk_config["min_confidence_threshold"]
+        
+        # Risk thresholds for categorization and recommendations
+        self.low_risk_threshold = risk_config["low_risk_threshold"]
+        self.medium_risk_threshold = risk_config["medium_risk_threshold"]
+        self.min_profit_threshold = risk_config["min_profit_threshold"]
+        
+        # Risk weights and default estimates
+        self.risk_weights = risk_config["risk_weights"]
+        self.default_gas_per_hop = risk_config["default_gas_per_hop"]
+        self.default_slippage_per_hop = risk_config["default_slippage_per_hop"]
+        
+        # # Override with provided parameters if not None for direct control
+        # if max_acceptable_slippage is not None:
+        #     self.max_acceptable_slippage = max_acceptable_slippage
+        # if max_gas_cost_ratio is not None:
+        #     self.max_gas_cost_ratio = max_gas_cost_ratio
+        # if min_confidence_threshold is not None:
+        #     self.min_confidence_threshold = min_confidence_threshold
 
     def evaluate_opportunity(self, opportunity: ArbitrageOpportunity,
                              edge_data_list: List[Dict] = None) -> Dict:
@@ -66,6 +93,7 @@ class ArbitrageRiskEvaluator:
             overall_risk, opportunity)
 
         return {
+            # unique ID for the opportunity：address1-address2...lastAddr8
             'opportunity_id': f"{'-'.join(opportunity.path[:2])}...{opportunity.path[-1][:8]}",
             'profit_percentage': opportunity.profit_ratio * 100,
             'estimated_profit_sol': opportunity.estimated_profit_sol,
@@ -92,12 +120,9 @@ class ArbitrageRiskEvaluator:
             total_slippage = sum(edge.get('slippage_bps', 100)
                                  for edge in edge_data_list) / 10000.0
         else:
-            # if no edge data, use default estimates
-            estimated_gas_per_hop = 0.0005
-            estimated_slippage_per_hop = 0.001
-
-            total_gas_cost = opportunity.hop_count * estimated_gas_per_hop
-            total_slippage = opportunity.hop_count * estimated_slippage_per_hop
+            # if no edge data, use default estimates from config
+            total_gas_cost = opportunity.hop_count * self.default_gas_per_hop
+            total_slippage = opportunity.hop_count * self.default_slippage_per_hop
 
         # Calculate gas cost as ratio of expected profit
         expected_profit = max(opportunity.estimated_profit_sol, 0.001)
@@ -152,18 +177,11 @@ class ArbitrageRiskEvaluator:
     def _calculate_overall_risk(self, slippage_risk: float, gas_risk: float,
                                 complexity_risk: float) -> float:
         """
-        Calculate weighted overall risk score
+        Calculate weighted overall risk score using configured weights
         """
-        # Weights can be adjusted based on importance
-        weights = {
-            'slippage': 0.5,
-            'gas': 0.3,
-            'complexity': 0.2
-        }
-
-        overall_risk = (slippage_risk * weights['slippage'] +
-                        gas_risk * weights['gas'] +
-                        complexity_risk * weights['complexity'])
+        overall_risk = (slippage_risk * self.risk_weights['slippage'] +
+                        gas_risk * self.risk_weights['gas'] +
+                        complexity_risk * self.risk_weights['complexity'])
 
         return min(1.0, overall_risk)
 
@@ -172,20 +190,20 @@ class ArbitrageRiskEvaluator:
         """
         Determine execution recommendation based on risk assessment
         """
-        if overall_risk <= 0.3 and opportunity.profit_ratio >= self.min_confidence_threshold:
-            return "EXECUTE" # Low risk and high profit
-        elif overall_risk <= 0.6 and opportunity.profit_ratio >= 0.005:  # 0.5% minimum
-            return "CONSIDER" # Medium risk and reasonable profit
+        if overall_risk <= self.low_risk_threshold and opportunity.profit_ratio >= self.min_confidence_threshold:
+            return "EXECUTE"  # Low risk and high profit
+        elif overall_risk <= self.medium_risk_threshold and opportunity.profit_ratio >= self.min_profit_threshold:
+            return "CONSIDER"  # Medium risk and reasonable profit
         else:
-            return "AVOID" # High risk or low profit
+            return "AVOID"  # High risk or low profit
 
     def _categorize_risk_level(self, risk_score: float) -> str:
         """
         Categorize risk level for easy interpretation
         """
-        if risk_score <= 0.3:
+        if risk_score <= self.low_risk_threshold:
             return "LOW"
-        elif risk_score <= 0.6:
+        elif risk_score <= self.medium_risk_threshold:
             return "MEDIUM"
         else:
             return "HIGH"
@@ -229,16 +247,36 @@ class ArbitrageRiskEvaluator:
         """
         if not evaluations:
             return {'total': 0, 'executable': 0, 'consideration': 0, 'avoid': 0}
-
+        # Total number of opportunities evaluated
         total = len(evaluations)
-        executable = sum(
-            1 for e in evaluations if e['recommendation'] == 'EXECUTE')
-        consideration = sum(
-            1 for e in evaluations if e['recommendation'] == 'CONSIDER')
-        avoid = sum(1 for e in evaluations if e['recommendation'] == 'AVOID')
-
-        avg_risk = sum(e['risk_score'] for e in evaluations) / total
-        avg_profit = sum(e['profit_percentage'] for e in evaluations) / total
+        
+        # Count opportunities by recommendation type
+        executable = 0
+        consideration = 0
+        avoid = 0
+        
+        # Sum up risk scores and profit percentages for average calculation
+        total_risk_score = 0
+        total_profit_percentage = 0
+        
+        # Process each evaluation to gather statistics
+        for evaluation in evaluations:
+            recommendation = evaluation['recommendation']  # Determine recommendation type
+            # Count by recommendation type
+            if recommendation == 'EXECUTE':
+                executable += 1
+            elif recommendation == 'CONSIDER':
+                consideration += 1
+            elif recommendation == 'AVOID':
+                avoid += 1
+            
+            # Accumulate for average calculations
+            total_risk_score += evaluation['risk_score']
+            total_profit_percentage += evaluation['profit_percentage']
+        
+        # Calculate averages
+        avg_risk = total_risk_score / total
+        avg_profit = total_profit_percentage / total
 
         return {
             'total_opportunities': total,

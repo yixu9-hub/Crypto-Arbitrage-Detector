@@ -8,6 +8,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from typing import List, Optional
 from utils.data_structures import ArbitrageOpportunity
+from utils.graph_utils import get_node_symbol
+from configs.strategy_config import get_algorithm_config
 
 
 class BellmanFordArbitrage:
@@ -16,20 +18,33 @@ class BellmanFordArbitrage:
     """
 
     def __init__(self,
-                 min_profit_threshold: float = 0.005,  # 0.5%
-                 max_hops: int = 4,
-                 base_amount: float = 1.0):
+                 min_profit_threshold: float = None,
+                 max_hops: int = None,
+                 base_amount: float = None):
         """
         Initialize algorithm
 
         Args:
             min_profit_threshold: Minimum profit threshold
             max_hops: Maximum allowed hops
-            base_amount: Base trading amount (SOL)
+            base_amount: Base trading amount in SOL
         """
-        self.min_profit_threshold = min_profit_threshold
-        self.max_hops = max_hops
-        self.base_amount = base_amount
+        # Get algorithm configuration
+        config = get_algorithm_config("bellman_ford")
+        
+        # Set parameters from config
+        self.min_profit_threshold = config["min_profit_threshold"]
+        self.max_hops = config["max_hops"]
+        self.base_amount = config["base_amount"]
+        
+        # Override with provided parameters if not None for direct initialization
+        if min_profit_threshold is not None:
+            self.min_profit_threshold = min_profit_threshold
+        if max_hops is not None:
+            self.max_hops = max_hops
+        if base_amount is not None:
+            self.base_amount = base_amount
+
         self.algorithm_name = "BellmanFordArbitrage"
 
     def detect_opportunities(self, graph: nx.DiGraph, source_token: str = None) -> List[ArbitrageOpportunity]:
@@ -97,7 +112,7 @@ class BellmanFordArbitrage:
                     opportunity = self._create_arbitrage_opportunity(
                         graph, cycle_path)
                     if opportunity:
-                        print(f"Created opportunity: profit={opportunity.profit_ratio:.6f}, threshold={self.min_profit_threshold:.6f}")
+                        #print(f"Created opportunity: profit={opportunity.profit_ratio:.6f}, threshold={self.min_profit_threshold:.6f}")
                         opportunities.append(opportunity)
                     else:
                         print(f"NO opportunity created")
@@ -172,7 +187,11 @@ class BellmanFordArbitrage:
             
             if next_node == current and len(cycle) >= 2:
                 cycle.append(current)  # Complete the cycle
-                print(f"negative cycle detected: {[node[:8] + '...' for node in cycle]}")
+                cycle_symbols = []
+                for node in cycle:
+                    cycle_symbols.append(get_node_symbol(graph, node))
+                
+                #print(f"negative cycle detected: {cycle_symbols}")
                 return cycle
             
         except Exception as e:
@@ -184,28 +203,31 @@ class BellmanFordArbitrage:
         """
         Create arbitrage opportunity object from path
         """
-        path_display = []
-        for i in path:
-            path_display.append(i[:6]+'...') # Display first 6 characters
-        print(f" Creating opportunity from path: {path_display}")
+
+        path_display = [get_node_symbol(graph, token) for token in path]
+        #print(f" Creating opportunity from path: {path_display}")
 
         try:
             if len(path) < 2:
                 print(f"Path too short: {len(path)} nodes")
                 return None
 
-            # Calculate total path weight, slippage, and price impact
+            # Calculate total path weight, slippage, price impact, gas fees, and trading fees
             total_weight = 0.0
             total_slippage = 0.0
             total_price_impact = 0.0
+            total_gas_fee = 0.0
+            total_trading_fee = 0.0
 
-            print(f" Building trades from {len(path)} nodes:")
+            #print(f" Building trades from {len(path)} nodes:")
             for i in range(len(path) - 1):
                 from_token = path[i]
                 to_token = path[i + 1]
 
                 if not graph.has_edge(from_token, to_token):
-                    print(f"Missing edge: {from_token[:6]}... -> {to_token[:6]}...")
+                    from_display = get_node_symbol(graph, from_token)
+                    to_display = get_node_symbol(graph, to_token)
+                    print(f"Missing edge: {from_display} -> {to_display}")
                     return None  # Invalid path
 
                 edge_data = graph[from_token][to_token]
@@ -216,16 +238,19 @@ class BellmanFordArbitrage:
 
                 slippage_decimal = slippage_bps / 10000.0
 
-                print(f"Trade {i+1}: {from_token[:6]}... -> {to_token[:6]}..., weight: {weight:.6f}")
+                from_display = get_node_symbol(graph, from_token)
+                to_display = get_node_symbol(graph, to_token)
+                #print(f"Trade {i+1}: {from_display} -> {to_display}, weight: {weight:.6f}")
 
                 total_weight += weight
                 total_slippage += slippage_decimal
                 total_price_impact += abs(price_impact_pct)
-
+            total_gas_fee += edge_data.get('gas_fee', 0)
+            
             adjusted_weight = total_weight + \
-                total_slippage + (total_price_impact / 100.0)
+                total_slippage + total_price_impact
 
-            print(f" Total weight: {total_weight:.6f}, adjusted: {adjusted_weight:.6f}")
+            #print(f" Total weight: {total_weight:.6f}, adjusted: {adjusted_weight:.6f}")
 
             # Calculate profit ratio (negative weight indicates arbitrage opportunity)
             if adjusted_weight >= 0:
@@ -233,41 +258,34 @@ class BellmanFordArbitrage:
                 return None  # No arbitrage opportunity
 
             base_profit_ratio = math.exp(-adjusted_weight) - 1
-            print(f"Profitable path: weight = {adjusted_weight:.6f}, profit = {base_profit_ratio:.6f}")
+            #print(f"Profitable path: weight = {adjusted_weight:.6f}, profit = {base_profit_ratio:.6f}")
 
-            # No need to deduct total_fee as outAmount already has fees deducted
-            actual_profit_ratio = base_profit_ratio
+            # Calculate gas fees only (outAmount already accounts for trading fees)
+            gas_fee_sol = total_gas_fee * 1e-9  # Convert lamports to SOL
+            total_fee_sol = gas_fee_sol  # Only gas fees, trading fees already in outAmount
+            
+            # Calculate net profit after all fees
+            gross_profit = self.base_amount * base_profit_ratio
+            net_profit = gross_profit - total_fee_sol
+            net_profit_ratio = net_profit / self.base_amount
 
-            # Estimated profit (SOL) - profit before gas fee
-            estimated_profit = self.base_amount * actual_profit_ratio
+            # Basic confidence score (detailed risk evaluation done in integrated detector)
+            confidence_score = min(1.0, max(0.0, net_profit_ratio * 10))
 
-            slippage_risk = min(1.0, total_slippage * 10)
-            price_impact_risk = min(1.0, total_price_impact / 10)
-
-            # Confidence score calculation based on profit magnitude and market risks
-            if estimated_profit > 0:
-                # Higher profit = higher confidence
-                # Adjust multiplier as needed
-                base_confidence = min(1.0, estimated_profit * 10)
-            else:
-                base_confidence = 0.0
-
-            confidence_score = base_confidence * \
-                (1 - slippage_risk) * (1 - price_impact_risk)
-            confidence_score = max(0.0, min(1.0, confidence_score))
-
-            # Generate path symbols (for display)
-            path_symbols = [f"{addr[:4]}...{addr[-4:]}" for addr in path]
+            # Generate path symbols
+            path_symbols = []
+            for addr in path:
+                path_symbols.append(get_node_symbol(graph, addr))
 
             return ArbitrageOpportunity(
                 path=path,
                 path_symbols=path_symbols,
-                profit_ratio=actual_profit_ratio,
+                profit_ratio=net_profit_ratio,
                 total_weight=adjusted_weight,
-                total_fee=0.0,
+                total_fee=total_fee_sol,
                 hop_count=len(path) - 1,
                 confidence_score=confidence_score,
-                estimated_profit_sol=estimated_profit
+                estimated_profit_sol=net_profit
             )
 
         except Exception as e:
@@ -287,7 +305,7 @@ class BellmanFordArbitrage:
         slippage_bps = edge_data.get('slippage_bps', 0)
         price_impact_pct = edge_data.get('price_impact_pct', 0)
         slippage_decimal = slippage_bps / 10000.0
-        return base_weight + slippage_decimal + abs(price_impact_pct) / 100.0
+        return base_weight + slippage_decimal + abs(price_impact_pct)
 
     def _initialize_distances_and_predecessors(self, graph, start_node):
         """Initialize distances and predecessors for Bellman-Ford"""

@@ -35,7 +35,8 @@ jupiter_quote_api = {
         "Origin": "https://jup.ag",
         "Referer": "https://jup.ag/",
         "Connection": "keep-alive"
-    }
+    },
+    "api_key": ""  # quote key
 }
 
 # Jupiter swap API configuration for simulate_gas_fee and enrich_gas_fee
@@ -44,6 +45,7 @@ jupiter_swap_api = {
     "headers": {"Content-Type": "application/json"},
     "user_pubkey": "2ZwR1odHjrohqrTma9us4cHfGQcbCkVSnkJZo1MeDPU1",
     "max_request": 40,  # Maximum concurrent requests
+    "api_key": ""  # swap key
 }
 
 # Solana RPC API configuration for simulate_gas_fee and enrich_gas_fee

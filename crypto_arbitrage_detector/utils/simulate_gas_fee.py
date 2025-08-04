@@ -2,10 +2,18 @@ import aiohttp
 import json
 from crypto_arbitrage_detector.configs.request_config import jupiter_swap_api, solana_rpc_api
 
-async def fetch_swap_transaction(quote_response, user_pubkey=jupiter_swap_api["user_pubkey"]):
+async def fetch_swap_transaction(quote_response, 
+                                 user_pubkey=jupiter_swap_api["user_pubkey"], 
+                                 api_key=jupiter_swap_api["api_key"],
+                                 swap_url=jupiter_swap_api["base_url"]):
     """Fetch the swap transaction from Jupiter API based on the quote response."""
-    url = jupiter_swap_api["base_url"]
-    headers = jupiter_swap_api["headers"]
+    url = swap_url
+    headers = jupiter_swap_api["headers"].copy()
+    if api_key:
+        headers.update({
+            "Content-Type": "application/json",
+            "x-api-key": api_key
+        })
     payload = {
         "userPublicKey": user_pubkey,
         "quoteResponse": quote_response,
@@ -23,9 +31,14 @@ async def fetch_swap_transaction(quote_response, user_pubkey=jupiter_swap_api["u
             return tx
 
 
-async def simulate_gas_fee(base64_tx: str, unit_price_lamport: float = solana_rpc_api["unit_price"], base_fee: int = solana_rpc_api["base_fee"]):
+async def simulate_gas_fee(
+        base64_tx: str, 
+        unit_price_lamport: float = solana_rpc_api["unit_price"], 
+        base_fee: int = solana_rpc_api["base_fee"],
+        solana_rpc: str = solana_rpc_api["base_url"]
+        ) -> int:
     """Simulate the gas fee for a transaction using Solana RPC."""
-    url = solana_rpc_api["base_url"]
+    url = solana_rpc
     headers = solana_rpc_api["headers"]
     body = {
         "jsonrpc": "2.0",

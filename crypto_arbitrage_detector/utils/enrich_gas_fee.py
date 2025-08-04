@@ -5,7 +5,12 @@ from crypto_arbitrage_detector.utils.simulate_gas_fee import fetch_swap_transact
 from crypto_arbitrage_detector.configs.request_config import solana_rpc_api, jupiter_swap_api
 
 # main procedure: quote responses → enrich with tx + gas
-async def enrich_responses_with_gas_fee(responses: List[Dict]) -> List[Dict]:
+async def enrich_responses_with_gas_fee(
+        responses: List[Dict], 
+        api_key: str = jupiter_swap_api["api_key"], 
+        swap_url: str = jupiter_swap_api["base_url"],
+        solana_rpc: str = solana_rpc_api["base_url"]
+        ) -> List[Dict]:
     """
     Enrich quote responses with gas fee by fetching swap transactions and simulating gas.
     Args:
@@ -18,7 +23,7 @@ async def enrich_responses_with_gas_fee(responses: List[Dict]) -> List[Dict]:
 
     # Concurrently build swapTransaction
     for resp in responses[:jupiter_swap_api["max_request"]]:
-        tx_tasks.append(fetch_swap_transaction(resp))
+        tx_tasks.append(fetch_swap_transaction(resp, user_pubkey=jupiter_swap_api["user_pubkey"], api_key=api_key, swap_url=swap_url))
 
     tx_results = await asyncio.gather(*tx_tasks, return_exceptions=True)
 
@@ -30,7 +35,7 @@ async def enrich_responses_with_gas_fee(responses: List[Dict]) -> List[Dict]:
             print(f"Fetch tx failed for response {i}: {tx}")
             resp["gasFee"] = estimate_gas_fee_by_route(resp)
         else:
-            simulate_tasks.append(safe_simulate_gas_fee(tx))
+            simulate_tasks.append(safe_simulate_gas_fee(tx, solana_rpc))
             enriched.append({"response": resp, "tx": tx})
 
     # Concurrently simulate gas
@@ -68,14 +73,18 @@ def is_too_large(base64_tx: str, max_base64_size: int = 1644) -> bool:
 
 
 # Helper functions for safe simulation + fallback
-async def safe_simulate_gas_fee(base64_tx: str, unit_price: float = solana_rpc_api["unit_price"], base_fee: int = solana_rpc_api["base_fee"], fallback_units: int = solana_rpc_api["fallback_units"]) -> int:
+async def safe_simulate_gas_fee(
+        base64_tx: str, 
+        solana_rpc: str = solana_rpc_api["base_url"],
+        unit_price: float = solana_rpc_api["unit_price"], 
+        base_fee: int = solana_rpc_api["base_fee"]) -> int:
     """ 
     Simulate gas fee with a fallback mechanism.
     Args:
         base64_tx (str): The base64 encoded transaction.
+        solana_rpc (str): The Solana RPC API URL.
         unit_price (float): The price per compute unit in lamports.
         base_fee (int): The base fee in lamports.       
-        fallback_units (int): Fallback units to use if simulation fails.
     Returns:
         int: The total gas fee in lamports.
     """
@@ -84,7 +93,7 @@ async def safe_simulate_gas_fee(base64_tx: str, unit_price: float = solana_rpc_a
             return estimate_gas_fee_by_complexity(base64_tx)
         try:
             # Simulate gas fee using the Solana RPC API
-            gas = await simulate_gas_fee(base64_tx, unit_price, base_fee)
+            gas = await simulate_gas_fee(base64_tx, unit_price, base_fee, solana_rpc)
             return gas
         except Exception as e:
             print(f"Simulation failed: {e}")
