@@ -1,108 +1,149 @@
-from crypto_arbitrage_detector.utils.data_structures import EdgePairs
+'''
+Arbitrage test data from real-world crypto exchanges
+'''
+import math
 import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from crypto_arbitrage_detector.utils.data_structures import EdgePairs
 
 
 # Test data for arbitrage algorithms--old data format
 arbitrage_test_edges = [
-    EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', in_amount=10000.0,
-              out_amount=10191.603000000001, price_ratio=0.0346, weight=3.3639015969184585, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=25.0, gas_fee=6461),
-    EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', in_amount=10000.0,
-              out_amount=10080.0404, price_ratio=0.8236, weight=0.19407030382850268, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=4.0, gas_fee=6166),
-    EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', in_amount=10000.0,
-              out_amount=10179.431, price_ratio=0.0635, weight=2.756715373083491, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=25.0, gas_fee=6354),
-    EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', in_amount=10000.0,
-              out_amount=10225.5648, price_ratio=10.5636, weight=-2.3574141292727235, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=25.0, gas_fee=6457),
-    EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', in_amount=10000.0,
-              out_amount=10106.7808, price_ratio=631.6738, weight=-6.448373121660643, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=25.0, gas_fee=7347),
-    EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', in_amount=10000.0,
-              out_amount=10068.292500000001, price_ratio=0.8925, weight=0.11372876532834296, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=3.2239, gas_fee=6154),
-    EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='So11111111111111111111111111111111111111112', in_amount=294555.0,
-              out_amount=294555.0, price_ratio=29.4555, weight=-3.382880649876258, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=736.3875, gas_fee=5114),
-    EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', in_amount=294555.0,
-              out_amount=294235.5883, price_ratio=0.0043, weight=5.44914025628262, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=58.911, gas_fee=5115),
-    EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', in_amount=294555.0,
-              out_amount=295360.1153, price_ratio=24.1327, weight=-3.1835677672852825, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=180.3665, gas_fee=5119),
-    EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', in_amount=294555.0,
-              out_amount=295443.958, price_ratio=1.843, weight=-0.6113946786876863, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=177.3665, gas_fee=5215),
-    EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', in_amount=294555.0,
-              out_amount=296215.26, price_ratio=306.0075, weight=-5.723609611455942, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=180.3665, gas_fee=5120),
-    EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', in_amount=294555.0, out_amount=292009.9888,
-              price_ratio=18250.6243, weight=-9.811954566644728, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=180.3665, gas_fee=5119),
-    EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', in_amount=294555.0,
-              out_amount=294587.52160000004, price_ratio=26.1136, weight=-3.2624562514142945, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=180.3665, gas_fee=5142),
-    EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='So11111111111111111111111111111111111111112', in_amount=68426881.0, out_amount=68426881.0,
-              price_ratio=6842.6881, weight=-8.830935930489495, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0002091059628842757, total_fee=0.0, gas_fee=5111),
-    EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', in_amount=68426881.0, out_amount=68501092.2345,
-              price_ratio=232.5579, weight=-5.44913922628209, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00018688903347778582, total_fee=0.0, gas_fee=5116),
-    EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', in_amount=68426881.0, out_amount=68604579.9447,
-              price_ratio=5605.4073, weight=-8.631487000127496, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0001496676109032091, total_fee=0.0, gas_fee=5116),
-    EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', in_amount=68426881.0, out_amount=68399219.8046,
-              price_ratio=426.6791, weight=-6.0560322084459735, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0001955084781599794, total_fee=27903.0, gas_fee=5117),
-    EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', in_amount=68426881.0, out_amount=68824800.0,
-              price_ratio=71100.0, weight=-11.171842615791332, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=34213.440500000004, gas_fee=5119),
-    EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', in_amount=68426881.0, out_amount=67922403.36320001,
-              price_ratio=4245150.2102, weight=-15.261287762307667, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=34261.0, gas_fee=5117),
-    EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', in_amount=68426881.0, out_amount=68434611.67240001,
-              price_ratio=6066.3604, weight=-8.710514099605957, slippage_bps=50, platform_fee=0.0, price_impact_pct=9.313021185432649e-05, total_fee=0.0, gas_fee=5140),
-    EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='So11111111111111111111111111111111111111112', in_amount=12239.0,
-              out_amount=12239.0, price_ratio=1.2239, weight=-0.20204248140615572, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=3.4478, gas_fee=6000),
-    EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', in_amount=12239.0,
-              out_amount=12224.032500000001, price_ratio=0.0415, weight=3.1820618517454844, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=2.4478, gas_fee=5116),
-    EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', in_amount=12239.0,
-              out_amount=12247.3784, price_ratio=0.0764, weight=2.5717725828096625, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.2239, gas_fee=5212),
-    EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', in_amount=12239.0,
-              out_amount=12276.3696, price_ratio=12.6822, weight=-2.540199435536709, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.2239, gas_fee=5118),
-    EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', in_amount=12239.0,
-              out_amount=12260.7152, price_ratio=766.2947, weight=-6.641566821601142, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=39.3406, gas_fee=5216),
-    EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', in_amount=12239.0,
-              out_amount=12218.4511, price_ratio=1.0831, weight=-0.07982729985955435, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=2.4478, gas_fee=5240),
-    EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='So11111111111111111111111111111111111111112', in_amount=160306.0,
-              out_amount=160306.0, price_ratio=16.0306, weight=-2.7744993957400728, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=256.4896, gas_fee=5104),
-    EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', in_amount=160306.0, out_amount=160915.3965,
-              price_ratio=0.5463, weight=0.6045870035804651, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=80.15299999999999, gas_fee=5118),
-    EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', in_amount=160306.0, out_amount=157381.82630000002,
-              price_ratio=0.0023, weight=6.074846156047033, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.01829248429468875, total_fee=400.765, gas_fee=5114),
-    EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', in_amount=160306.0,
-              out_amount=160879.2072, price_ratio=13.1448, weight=-2.5760262431554843, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=306.4896, gas_fee=5119),
-    EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', in_amount=160306.0,
-              out_amount=161637.4144, price_ratio=166.9808, weight=-5.117878835747311, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=306.4896, gas_fee=5119),
-    EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', in_amount=160306.0,
-              out_amount=159601.7952, price_ratio=9975.1122, weight=-9.207848489815106, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=293.4284, gas_fee=5118),
-    EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', in_amount=160306.0,
-              out_amount=160457.5597, price_ratio=14.2237, weight=-2.654909587435517, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=306.4896, gas_fee=5141),
-    EdgePairs(from_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', to_token='So11111111111111111111111111111111111111112', in_amount=968.0,
-              out_amount=968.0, price_ratio=0.0968, weight=2.3351082846996056, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=5.3872, gas_fee=5109),
-    EdgePairs(from_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', in_amount=968.0,
-              out_amount=972.0315, price_ratio=0.0033, weight=5.713832810509703, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=3.6769, gas_fee=5119),
-    EdgePairs(from_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', in_amount=968.0,
-              out_amount=969.3288, price_ratio=0.0792, weight=2.5357789801617567, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=6.3872, gas_fee=5118),
-    EdgePairs(from_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', in_amount=968.0, out_amount=961.836,
-              price_ratio=0.006, weight=5.115995809754082, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.002509264972687044, total_fee=7.3872, gas_fee=5118),
-    EdgePairs(from_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', to_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', in_amount=968.0,
-              out_amount=980.3184, price_ratio=61.2699, weight=-4.115288694616107, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=6.3688, gas_fee=5315),
-    EdgePairs(from_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', in_amount=968.0,
-              out_amount=967.9098000000001, price_ratio=0.0858, weight=2.4557362724882204, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=5.3872, gas_fee=5141),
-    EdgePairs(from_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', to_token='So11111111111111111111111111111111111111112', in_amount=16.0, out_amount=16.0,
-              price_ratio=0.0016, weight=6.437751649736401, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.006127941083770864, total_fee=0.04, gas_fee=5104),
-    EdgePairs(from_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', in_amount=16.0, out_amount=15.9107,
-              price_ratio=0.0013, weight=6.645391014514646, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.017073431870572812, total_fee=0.04, gas_fee=5500),
-    EdgePairs(from_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', to_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', in_amount=16.0, out_amount=15.8752,
-              price_ratio=0.0164, weight=4.110473944151984, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.021626696480231435, total_fee=0.0, gas_fee=5500),
-    EdgePairs(from_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', in_amount=16.0, out_amount=15.793400000000002,
-              price_ratio=0.0014, weight=6.571283042360924, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.022182112872569514, total_fee=0.04, gas_fee=5500),
-    EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='So11111111111111111111111111111111111111112', in_amount=11281.000000000002, out_amount=11281.0,
-              price_ratio=1.1281, weight=-0.12053480162873767, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=2.3520000000000003, gas_fee=6000),
-    EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', in_amount=11281.000000000002, out_amount=11281.4565,
-              price_ratio=0.0383, weight=3.2623053827955366, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0006365603944503577, total_fee=28.202500000000004, gas_fee=5000),
-    EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', in_amount=11281.000000000002,
-              out_amount=11322.2989, price_ratio=0.9251, weight=0.07785343920486411, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.1281, gas_fee=6000),
-    EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', in_amount=11281.000000000002,
-              out_amount=11317.6036, price_ratio=0.0706, weight=2.650725134482941, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.1281, gas_fee=6000),
-    EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr', in_amount=11281.000000000002,
-              out_amount=11410.9776, price_ratio=11.7882, weight=-2.4670990311380354, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=3.1281, gas_fee=6000),
-    EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', in_amount=11281.000000000002,
-              out_amount=11347.808, price_ratio=709.238, weight=-6.564191154264898, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=35.273700000000005, gas_fee=5500)
+EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='So11111111111111111111111111111111111111112', from_symbol='JLP', to_symbol='SOL', in_amount=300300.30030030024, out_amount=301922.0, price_ratio=30.1922, weight=-3.4075836128755843, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=60.06006006006005, gas_fee=5204),
+EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', from_symbol='JLP', to_symbol='WBTC', in_amount=300300.30030030024, out_amount=297016.0452, price_ratio=0.0042, weight=5.472670753692815, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.014952602335865744, total_fee=150.15015015015013, gas_fee=5109),
+EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', from_symbol='JLP', to_symbol='RAY', in_amount=300300.30030030024, out_amount=301530.5266, price_ratio=1.9142, weight=-0.649299780779669, slippage_bps=50, platform_fee=0.0, price_impact_pct=9.08802832909845e-05, total_fee=157.03003003003002, gas_fee=5115),
+EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', from_symbol='JLP', to_symbol='JitoSOL', in_amount=300300.30030030024, out_amount=301703.9244, price_ratio=24.7116, weight=-3.2072727690171656, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=998.04889009009, gas_fee=5119),
+EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', from_symbol='JLP', to_symbol='mSOL', in_amount=300300.30030030024, out_amount=301393.3164, price_ratio=22.9668, weight=-3.1340496948498906, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0001833136132850019, total_fee=118.13063003003003, gas_fee=5134),
+EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', from_symbol='JLP', to_symbol='KMNO', in_amount=300300.30030030024, out_amount=307015.429, price_ratio=98.4655, weight=-4.589706233017745, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=814.40043003003, gas_fee=5119),
+EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', from_symbol='JLP', to_symbol='JupSOL', in_amount=300300.30030030024, out_amount=301354.92679999996, price_ratio=26.7206, weight=-3.2854348035061536, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00010711187036241879, total_fee=61.03003003003003, gas_fee=5500),
+EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', from_symbol='JLP', to_symbol='GP', in_amount=300300.30030030024, out_amount=303201.2808, price_ratio=1531.3196, weight=-7.333885126321302, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=323.83283003003004, gas_fee=5215),
+EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', from_symbol='JLP', to_symbol='USDC', in_amount=300300.30030030024, out_amount=301727.72699999996, price_ratio=4.8405, weight=-1.5770180211779892, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=663.89823003003, gas_fee=5017),
+EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', from_symbol='SOL', to_symbol='JLP', in_amount=10000.0, out_amount=9999.999999999998, price_ratio=0.0333, weight=3.402197881995739, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=107.2334, gas_fee=6261),
+EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', from_symbol='SOL', to_symbol='RAY', in_amount=10000.0, out_amount=10049.9674, price_ratio=0.0638, weight=2.752002088631393, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=125.9336, gas_fee=6648),
+EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', from_symbol='SOL', to_symbol='JitoSOL', in_amount=10000.0, out_amount=9999.171, price_ratio=0.819, weight=0.1996711951290677, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=6.2334, gas_fee=5960),
+EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', from_symbol='SOL', to_symbol='mSOL', in_amount=10000.0, out_amount=9999.726, price_ratio=0.762, weight=0.2718087232954908, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=6.2334, gas_fee=6083),
+EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', from_symbol='SOL', to_symbol='KMNO', in_amount=10000.0, out_amount=10279.422400000001, price_ratio=3.2968, weight=-1.1929523010424705, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=106.2334, gas_fee=6000),
+EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', from_symbol='SOL', to_symbol='JupSOL', in_amount=10000.0, out_amount=9997.947, price_ratio=0.8865, weight=0.12047415346787452, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00013098734957715598, total_fee=1.0, gas_fee=5545),
+EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', from_symbol='SOL', to_symbol='GP', in_amount=10000.0, out_amount=10121.5818, price_ratio=51.1191, weight=-3.9341582042804957, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=112.4668, gas_fee=6189),
+EdgePairs(from_token='So11111111111111111111111111111111111111112', to_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', from_symbol='SOL', to_symbol='USDC', in_amount=10000.0, out_amount=10004.607, price_ratio=0.1605, weight=1.8294613364120664, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=0.0, gas_fee=5492),
+EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', from_symbol='WBTC', to_symbol='JLP', in_amount=70718106.0, out_amount=70404204.2042042, price_ratio=234.446, weight=-5.457225284182971, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00026774196823898654, total_fee=63597.0, gas_fee=5118),
+EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='So11111111111111111111111111111111111111112', from_symbol='WBTC', to_symbol='SOL', in_amount=70718106.0, out_amount=70718106.0, price_ratio=7071.8106, weight=-8.863871822284636, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=0.0, gas_fee=5111),
+EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', from_symbol='WBTC', to_symbol='RAY', in_amount=70718106.0, out_amount=70699457.1077, price_ratio=448.8199, weight=-6.106621693688935, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00027916965544972174, total_fee=29680.0, gas_fee=6000),
+EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', from_symbol='WBTC', to_symbol='JitoSOL', in_amount=70718106.0, out_amount=70649634.72320001, price_ratio=5786.6848, weight=-8.663314833181875, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0005504360549688147, total_fee=0.0, gas_fee=5113),
+EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', from_symbol='WBTC', to_symbol='mSOL', in_amount=70718106.0, out_amount=70651306.8833, price_ratio=5383.7771, weight=-8.591145470021777, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00030691713184543087, total_fee=7066.0, gas_fee=5132),
+EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', from_symbol='WBTC', to_symbol='KMNO', in_amount=70718106.0, out_amount=71913174.722, price_ratio=23063.879, weight=-10.046022993033231, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00031809332810210303, total_fee=5940.4302, gas_fee=5116),
+EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', from_symbol='WBTC', to_symbol='JupSOL', in_amount=70718106.0, out_amount=70655694.453, price_ratio=6264.9135, weight=-8.742720060371326, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.000272301747781398, total_fee=7067.0, gas_fee=5138),
+EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', from_symbol='WBTC', to_symbol='GP', in_amount=70718106.0, out_amount=70304065.58340001, price_ratio=355071.0383, weight=-12.780073156325964, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0002234158096852817, total_fee=706661.8578, gas_fee=5113),
+EdgePairs(from_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', to_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', from_symbol='WBTC', to_symbol='USDC', in_amount=70718106.0, out_amount=70665724.5084, price_ratio=1133.6626, weight=-7.03320890915241, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00022295306, total_fee=0.0, gas_fee=5007),
+EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', from_symbol='RAY', to_symbol='JLP', in_amount=157523.0, out_amount=156906.9069069069, price_ratio=0.5225, weight=0.649130295143171, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=65.9571, gas_fee=5118),
+EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='So11111111111111111111111111111111111111112', from_symbol='RAY', to_symbol='SOL', in_amount=157523.0, out_amount=157523.0, price_ratio=15.7523, weight=-2.7569863863560764, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=236.2845, gas_fee=5205),
+EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', from_symbol='RAY', to_symbol='WBTC', in_amount=157523.0, out_amount=155579.8332, price_ratio=0.0022, weight=6.119297918617867, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.012333461843746457, total_fee=864.9232, gas_fee=5500),
+EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', from_symbol='RAY', to_symbol='JitoSOL', in_amount=157523.0, out_amount=157459.473, price_ratio=12.897, weight=-2.5569947261822543, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=442.3895, gas_fee=6000),
+EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', from_symbol='RAY', to_symbol='mSOL', in_amount=157523.0, out_amount=157424.8203, price_ratio=11.9961, weight=-2.484581596964055, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=95.4239, gas_fee=5134),
+EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', from_symbol='RAY', to_symbol='KMNO', in_amount=157523.0, out_amount=160395.2206, price_ratio=51.4417, weight=-3.940449127594792, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=456.8591, gas_fee=5118),
+EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', from_symbol='RAY', to_symbol='JupSOL', in_amount=157523.0, out_amount=157407.046, price_ratio=13.957, weight=-2.635981174526507, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00011632419878779404, total_fee=63.2569, gas_fee=5137),
+EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', from_symbol='RAY', to_symbol='GP', in_amount=157523.0, out_amount=158373.40860000002, price_ratio=799.8657, weight=-6.684443838575342, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=184.3917, gas_fee=5213),
+EdgePairs(from_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', to_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', from_symbol='RAY', to_symbol='USDC', in_amount=157523.0, out_amount=157599.05219999998, price_ratio=2.5283, weight=-0.9275471401298544, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=378.47049999999996, gas_fee=5018),
+EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', from_symbol='JitoSOL', to_symbol='JLP', in_amount=12209.000000000002, out_amount=12162.162162162162, price_ratio=0.0405, weight=3.2064533048696435, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0003466649262498368, total_fee=4.2209, gas_fee=5116),
+EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='So11111111111111111111111111111111111111112', from_symbol='JitoSOL', to_symbol='SOL', in_amount=12209.000000000002, out_amount=12209.0, price_ratio=1.2209, weight=-0.19958829169267278, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.2209, gas_fee=5000),
+EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', from_symbol='JitoSOL', to_symbol='RAY', in_amount=12209.000000000002, out_amount=12208.0325, price_ratio=0.0775, weight=2.557477342622836, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00013265847412993433, total_fee=6.2209, gas_fee=5115),
+EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', from_symbol='JitoSOL', to_symbol='mSOL', in_amount=12209.000000000002, out_amount=12207.0146, price_ratio=0.9302, weight=0.07235566219214039, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00016357644251128664, total_fee=1.2209, gas_fee=5124),
+EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', from_symbol='JitoSOL', to_symbol='KMNO', in_amount=12209.000000000002, out_amount=12478.236, price_ratio=4.002, weight=-1.3867942361615415, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=7.4543, gas_fee=5118),
+EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', from_symbol='JitoSOL', to_symbol='JupSOL', in_amount=12209.000000000002, out_amount=12207.3072, price_ratio=1.0824, weight=-0.07918079787444125, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.2209, gas_fee=5000),
+EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', from_symbol='JitoSOL', to_symbol='GP', in_amount=12209.000000000002, out_amount=12287.7612, price_ratio=62.0594, weight=-4.128091990910334, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=13.6877, gas_fee=6000),
+EdgePairs(from_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', to_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', from_symbol='JitoSOL', to_symbol='USDC', in_amount=12209.000000000002, out_amount=12217.464, price_ratio=0.196, weight=1.6296406197516198, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=3.2209000000000003, gas_fee=6000),
+EdgePairs(from_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', from_symbol='mSOL', to_symbol='JLP', in_amount=13123.0, out_amount=13063.063063063062, price_ratio=0.0435, weight=3.1349943408874985, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0010809329142995286, total_fee=8.0, gas_fee=5500),
+EdgePairs(from_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', to_token='So11111111111111111111111111111111111111112', from_symbol='mSOL', to_symbol='SOL', in_amount=13123.0, out_amount=13123.0, price_ratio=1.3123, weight=-0.27178132292010393, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00013339867347360462, total_fee=1.0, gas_fee=5000),
+EdgePairs(from_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', from_symbol='mSOL', to_symbol='RAY', in_amount=13123.0, out_amount=13121.6659, price_ratio=0.0833, weight=2.48530672980934, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00023400658076847697, total_fee=7.0, gas_fee=5500),
+EdgePairs(from_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', from_symbol='mSOL', to_symbol='JitoSOL', in_amount=13123.0, out_amount=13122.2332, price_ratio=1.0748, weight=-0.07213459775919909, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0005781045560562503, total_fee=6.5615000000000006, gas_fee=5000),
+EdgePairs(from_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', to_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', from_symbol='mSOL', to_symbol='KMNO', in_amount=13123.0, out_amount=13408.647200000001, price_ratio=4.3004, weight=-1.458708041628936, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=13.4668, gas_fee=6000),
+EdgePairs(from_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', from_symbol='mSOL', to_symbol='JupSOL', in_amount=13123.0, out_amount=13121.953, price_ratio=1.1635, weight=-0.15143270376020934, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.3123, gas_fee=5000),
+EdgePairs(from_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', to_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', from_symbol='mSOL', to_symbol='GP', in_amount=13123.0, out_amount=13204.4418, price_ratio=66.6891, weight=-4.2000415212765, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=19.7002, gas_fee=6000),
+EdgePairs(from_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', to_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', from_symbol='mSOL', to_symbol='USDC', in_amount=13123.0, out_amount=13127.5404, price_ratio=0.2106, weight=1.557794679282262, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.0, gas_fee=5500),
+EdgePairs(from_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', from_symbol='KMNO', to_symbol='JLP', in_amount=3118.0, out_amount=3033.0330330330326, price_ratio=0.0101, weight=4.595219855134923, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.006201196783692178, total_fee=11.354000000000001, gas_fee=5500),
+EdgePairs(from_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', to_token='So11111111111111111111111111111111111111112', from_symbol='KMNO', to_symbol='SOL', in_amount=3118.0, out_amount=3118.0, price_ratio=0.3118, weight=1.165393322358461, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=21.778599999999997, gas_fee=6000),
+EdgePairs(from_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', from_symbol='KMNO', to_symbol='RAY', in_amount=3118.0, out_amount=3071.6985, price_ratio=0.0195, weight=3.937340813412436, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=6.5451999999999995, gas_fee=6000),
+EdgePairs(from_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', from_symbol='KMNO', to_symbol='JitoSOL', in_amount=3118.0, out_amount=3071.7844000000005, price_ratio=0.2516, weight=1.3799147541558516, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=34.4298, gas_fee=6000),
+EdgePairs(from_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', to_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', from_symbol='KMNO', to_symbol='mSOL', in_amount=3118.0, out_amount=3069.4697, price_ratio=0.2339, weight=1.4528616053920038, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=34.4298, gas_fee=6000),
+EdgePairs(from_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', from_symbol='KMNO', to_symbol='JupSOL', in_amount=3118.0, out_amount=3067.616, price_ratio=0.272, weight=1.3019532126861397, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=7.7661, gas_fee=6000),
+EdgePairs(from_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', to_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', from_symbol='KMNO', to_symbol='GP', in_amount=3118.0, out_amount=3082.9788000000003, price_ratio=15.5706, weight=-2.7453845207489, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=6.5451999999999995, gas_fee=5500),
+EdgePairs(from_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', to_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', from_symbol='KMNO', to_symbol='USDC', in_amount=3118.0, out_amount=3073.0661999999998, price_ratio=0.0493, weight=3.009831197933493, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=31.3118, gas_fee=6000),
+EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', from_symbol='JupSOL', to_symbol='JLP', in_amount=11278.0, out_amount=11261.26126126126, price_ratio=0.0375, weight=3.283414346005772, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=34.428399999999996, gas_fee=6000),
+EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='So11111111111111111111111111111111111111112', from_symbol='JupSOL', to_symbol='SOL', in_amount=11278.0, out_amount=11278.0, price_ratio=1.1278, weight=-0.12026883239094462, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.00011708721272924165, total_fee=2.3487, gas_fee=6000),
+EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', from_symbol='JupSOL', to_symbol='RAY', in_amount=11278.0, out_amount=11294.3991, price_ratio=0.0717, weight=2.6352645313765626, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=54.3758, gas_fee=6000),
+EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', from_symbol='JupSOL', to_symbol='JitoSOL', in_amount=11278.0, out_amount=11278.674200000001, price_ratio=0.9238, weight=0.07925968098563209, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.1278, gas_fee=5500),
+EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', from_symbol='JupSOL', to_symbol='mSOL', in_amount=11278.0, out_amount=11276.5939, price_ratio=0.8593, weight=0.15163717466295976, slippage_bps=50, platform_fee=0.0, price_impact_pct=6.361127080417123e-05, total_fee=1.1278, gas_fee=5000),
+EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', from_symbol='JupSOL', to_symbol='KMNO', in_amount=11278.0, out_amount=11528.4932, price_ratio=3.6974, weight=-1.3076298699362081, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=7.361199999999999, gas_fee=6000),
+EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', from_symbol='JupSOL', to_symbol='GP', in_amount=11278.0, out_amount=11371.060800000001, price_ratio=57.4296, weight=-4.050559849851079, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=41.90899999999999, gas_fee=6000),
+EdgePairs(from_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', to_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', from_symbol='JupSOL', to_symbol='USDC', in_amount=11278.0, out_amount=11282.454, price_ratio=0.181, weight=1.7092582477163114, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.1278, gas_fee=5500),
+EdgePairs(from_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', from_symbol='GP', to_symbol='JLP', in_amount=198.00000000000003, out_amount=180.18018018018017, price_ratio=0.0006, weight=7.418580902748128, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.09192514805651661, total_fee=2.287, gas_fee=5500),
+EdgePairs(from_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', to_token='So11111111111111111111111111111111111111112', from_symbol='GP', to_symbol='SOL', in_amount=198.00000000000003, out_amount=198.0, price_ratio=0.0198, weight=3.9220733412816475, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.005142304542420162, total_fee=0.6138, gas_fee=5000),
+EdgePairs(from_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', from_symbol='GP', to_symbol='RAY', in_amount=198.00000000000003, out_amount=189.0276, price_ratio=0.0012, weight=6.725433722188183, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0508197477300197, total_fee=2.287, gas_fee=5500),
+EdgePairs(from_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', from_symbol='GP', to_symbol='JitoSOL', in_amount=198.00000000000003, out_amount=197.78580000000002, price_ratio=0.0162, weight=4.122744036743799, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0061043222325075416, total_fee=0.6138, gas_fee=5500),
+EdgePairs(from_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', to_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', from_symbol='GP', to_symbol='mSOL', in_amount=198.00000000000003, out_amount=198.1573, price_ratio=0.0151, weight=4.193060535161258, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0042074959089134995, total_fee=2.6138, gas_fee=6000),
+EdgePairs(from_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', to_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', from_symbol='GP', to_symbol='KMNO', in_amount=198.00000000000003, out_amount=202.3582, price_ratio=0.0649, weight=2.734907655272093, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.2870000000000001, gas_fee=6000),
+EdgePairs(from_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', from_symbol='GP', to_symbol='JupSOL', in_amount=198.00000000000003, out_amount=197.36499999999998, price_ratio=0.0175, weight=4.045554398052668, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.008221554655248934, total_fee=0.6138, gas_fee=5500),
+EdgePairs(from_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', to_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', from_symbol='GP', to_symbol='USDC', in_amount=198.00000000000003, out_amount=199.4688, price_ratio=0.0032, weight=5.744604469176456, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=1.2870000000000001, gas_fee=5500),
+EdgePairs(from_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', to_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', from_symbol='USDC', to_symbol='JLP', in_amount=62333.99999999999, out_amount=62222.22222222221, price_ratio=0.2072, weight=1.5740707685968092, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=17.0, gas_fee=6000),
+EdgePairs(from_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', to_token='So11111111111111111111111111111111111111112', from_symbol='USDC', to_symbol='SOL', in_amount=62333.99999999999, out_amount=62334.0, price_ratio=6.2334, weight=-1.829921930322404, slippage_bps=50, platform_fee=0.0, price_impact_pct=4.313671520154046e-05, total_fee=0.0, gas_fee=5000),
+EdgePairs(from_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', to_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', from_symbol='USDC', to_symbol='WBTC', in_amount=62333.99999999999, out_amount=56574.4848, price_ratio=0.0008, weight=7.1308988302963465, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.09297052154195011, total_fee=31.166999999999998, gas_fee=5000),
+EdgePairs(from_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', from_symbol='USDC', to_symbol='RAY', in_amount=62333.99999999999, out_amount=62489.3741, price_ratio=0.3967, weight=0.9245749514618526, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=28.0, gas_fee=6000),
+EdgePairs(from_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', to_token='J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn', from_symbol='USDC', to_symbol='JitoSOL', in_amount=62333.99999999999, out_amount=62352.583900000005, price_ratio=5.1071, weight=-1.630631728441102, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0002551873544212521, total_fee=86.70830000000001, gas_fee=6000),
+EdgePairs(from_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', to_token='mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', from_symbol='USDC', to_symbol='mSOL', in_amount=62333.99999999999, out_amount=62329.0008, price_ratio=4.7496, weight=-1.5580604039743287, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0005412262014085348, total_fee=188.0867, gas_fee=6000),
+EdgePairs(from_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', to_token='KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', from_symbol='USDC', to_symbol='KMNO', in_amount=62333.99999999999, out_amount=63597.222400000006, price_ratio=20.3968, weight=-3.0153780258008256, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=7.0, gas_fee=5500),
+EdgePairs(from_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', to_token='jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v', from_symbol='USDC', to_symbol='JupSOL', in_amount=62333.99999999999, out_amount=62325.611399999994, price_ratio=5.5263, weight=-1.7095185138441442, slippage_bps=50, platform_fee=0.0, price_impact_pct=3.083342308320334e-05, total_fee=7.0, gas_fee=5500),
+EdgePairs(from_token='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', to_token='31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', from_symbol='USDC', to_symbol='GP', in_amount=62333.99999999999, out_amount=62720.143200000006, price_ratio=316.7684, weight=-5.758170907490413, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=56.1006, gas_fee=5000)
+
 ]
+
+
+def create_test_graph_from_edges(edges: list) -> nx.DiGraph:
+    """
+    Create a NetworkX DiGraph from EdgePairs data for testing algorithms
+    """
+    graph = nx.DiGraph()
+
+    # Add all unique tokens as nodes
+    tokens = set()
+    for edge in edges:
+        tokens.add(edge.from_token)
+        tokens.add(edge.to_token)
+
+    for token in tokens:
+        graph.add_node(token)
+
+    # Add edges with all relevant data
+    for edge in edges:
+        graph.add_edge(
+            edge.from_token,
+            edge.to_token,
+            in_amount=edge.in_amount,
+            weight=edge.weight,
+            out_amount=edge.out_amount,
+            from_symbol=edge.from_symbol,
+            to_symbol=edge.to_symbol,
+            price_ratio=edge.price_ratio,
+            slippage_bps=edge.slippage_bps,
+            platform_fee=edge.platform_fee,
+            price_impact_pct=edge.price_impact_pct,
+            total_fee=edge.total_fee,
+            gas_fee=edge.gas_fee
+        )
+
+    return graph
+
+
+def create_test_graph_for_bellman_ford() -> nx.DiGraph:
+    """
+    Create test graph specifically for Bellman-Ford algorithm testing
+    """
+    return create_test_graph_from_edges(arbitrage_test_edges)
+
+
+def create_balanced_test_graph() -> nx.DiGraph:
+    """
+    Create test graph with no arbitrage opportunities (for negative testing)
+    """
+    return create_test_graph_from_edges(balanced_test_edges)

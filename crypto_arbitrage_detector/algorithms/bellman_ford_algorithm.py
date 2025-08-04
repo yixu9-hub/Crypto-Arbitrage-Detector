@@ -112,7 +112,7 @@ class BellmanFordArbitrage:
                     opportunity = self._create_arbitrage_opportunity(
                         graph, cycle_path)
                     if opportunity:
-                        print(f"Created opportunity: profit={opportunity.profit_ratio:.6f}, threshold={self.min_profit_threshold:.6f}")
+                        #print(f"Created opportunity: profit={opportunity.profit_ratio:.6f}, threshold={self.min_profit_threshold:.6f}")
                         opportunities.append(opportunity)
                     else:
                         print(f"NO opportunity created")
@@ -191,7 +191,7 @@ class BellmanFordArbitrage:
                 for node in cycle:
                     cycle_symbols.append(get_node_symbol(graph, node))
                 
-                print(f"negative cycle detected: {cycle_symbols}")
+                #print(f"negative cycle detected: {cycle_symbols}")
                 return cycle
             
         except Exception as e:
@@ -203,8 +203,9 @@ class BellmanFordArbitrage:
         """
         Create arbitrage opportunity object from path
         """
+
         path_display = [get_node_symbol(graph, token) for token in path]
-        print(f" Creating opportunity from path: {path_display}")
+        #print(f" Creating opportunity from path: {path_display}")
 
         try:
             if len(path) < 2:
@@ -218,7 +219,7 @@ class BellmanFordArbitrage:
             total_gas_fee = 0.0
             total_trading_fee = 0.0
 
-            print(f" Building trades from {len(path)} nodes:")
+            #print(f" Building trades from {len(path)} nodes:")
             for i in range(len(path) - 1):
                 from_token = path[i]
                 to_token = path[i + 1]
@@ -239,7 +240,7 @@ class BellmanFordArbitrage:
 
                 from_display = get_node_symbol(graph, from_token)
                 to_display = get_node_symbol(graph, to_token)
-                print(f"Trade {i+1}: {from_display} -> {to_display}, weight: {weight:.6f}")
+                #print(f"Trade {i+1}: {from_display} -> {to_display}, weight: {weight:.6f}")
 
                 total_weight += weight
                 total_slippage += slippage_decimal
@@ -249,7 +250,7 @@ class BellmanFordArbitrage:
             adjusted_weight = total_weight + \
                 total_slippage + total_price_impact
 
-            print(f" Total weight: {total_weight:.6f}, adjusted: {adjusted_weight:.6f}")
+            #print(f" Total weight: {total_weight:.6f}, adjusted: {adjusted_weight:.6f}")
 
             # Calculate profit ratio (negative weight indicates arbitrage opportunity)
             if adjusted_weight >= 0:
@@ -257,7 +258,7 @@ class BellmanFordArbitrage:
                 return None  # No arbitrage opportunity
 
             base_profit_ratio = math.exp(-adjusted_weight) - 1
-            print(f"Profitable path: weight = {adjusted_weight:.6f}, profit = {base_profit_ratio:.6f}")
+            #print(f"Profitable path: weight = {adjusted_weight:.6f}, profit = {base_profit_ratio:.6f}")
 
             # Calculate gas fees only (outAmount already accounts for trading fees)
             gas_fee_sol = total_gas_fee * 1e-9  # Convert lamports to SOL
