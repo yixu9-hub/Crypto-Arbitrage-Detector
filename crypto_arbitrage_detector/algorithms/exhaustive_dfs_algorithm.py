@@ -1,6 +1,9 @@
 '''
 Exhaustive DFS with Profit Pruning
+This module implements an exhaustive DFS algorithm to find arbitrage 
+opportunities.
 '''
+
 import networkx as nx
 import math
 import sys
@@ -8,6 +11,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from typing import List, Optional, Set, Dict
 from utils.data_structures import ArbitrageOpportunity
+from utils.graph_utils import get_node_symbol
+from configs.strategy_config import get_algorithm_config
 
 
 class ExhaustiveDFSArbitrage:
@@ -16,25 +21,40 @@ class ExhaustiveDFSArbitrage:
     """
 
     def __init__(self,
-                 min_profit_threshold: float = 0.005, # 0.5% minimum profit
-                 max_hops: int = 5,
-                 base_amount: float = 1.0,
-                 profit_pruning_threshold: float = 0.5):
+                 min_profit_threshold: float = None,
+                 max_hops: int = None,
+                 base_amount: float = None,
+                 profit_pruning_threshold: float = None):
         """
         Initialize algorithm
 
         Args:
             min_profit_threshold: Minimum profit threshold
             max_hops: Maximum allowed hops
-            base_amount: Base trading amount (SOL)
-            profit_pruning_threshold: Early pruning threshold for unprofitable paths
+            base_amount: Base trading amount in SOL
+            profit_pruning_threshold: Early pruning threshold
         """
-        self.min_profit_threshold = min_profit_threshold
-        self.max_hops = max_hops
-        self.base_amount = base_amount
-        self.profit_pruning_threshold = profit_pruning_threshold
+        # Get algorithm configuration
+        config = get_algorithm_config("exhaustive_dfs")
+
+        # Set parameters from config
+        self.min_profit_threshold = config["min_profit_threshold"]
+        self.max_hops = config["max_hops"]
+        self.base_amount = config["base_amount"]
+        self.profit_pruning_threshold = config["profit_pruning_threshold"]
+        
+        # Override with provided parameters if not None
+        if min_profit_threshold is not None:
+            self.min_profit_threshold = min_profit_threshold
+        if max_hops is not None:
+            self.max_hops = max_hops
+        if base_amount is not None:
+            self.base_amount = base_amount
+        if profit_pruning_threshold is not None:
+            self.profit_pruning_threshold = profit_pruning_threshold
         self.algorithm_name = "ExhaustiveDFSArbitrage"
         
+        # Initialize counters
         self.paths_explored = 0
         self.paths_pruned = 0
         self.cycles_found = 0
@@ -44,7 +64,7 @@ class ExhaustiveDFSArbitrage:
         Use exhaustive DFS to find all profitable arbitrage cycles
         """
         opportunities = []
-        # 
+        
         self.paths_explored = 0
         self.paths_pruned = 0
         self.cycles_found = 0
@@ -108,7 +128,7 @@ class ExhaustiveDFSArbitrage:
                     # Calculate final cycle weight
                     if graph.has_edge(current_node, neighbor):
                         edge_data = graph[current_node][neighbor]
-                        final_weight = self._calculate_edge_weight(edge_data)
+                        final_weight = self._calculate_adjusted_weight(edge_data)
                         total_cycle_weight = path_weight + final_weight
                         
                         # Check if this is a profitable cycle (negative weight = profitable)
@@ -121,7 +141,7 @@ class ExhaustiveDFSArbitrage:
                 elif neighbor not in visited_in_path and depth < self.max_hops - 1:
                     if graph.has_edge(current_node, neighbor):
                         edge_data = graph[current_node][neighbor]
-                        edge_weight = self._calculate_edge_weight(edge_data)
+                        edge_weight = self._calculate_adjusted_weight(edge_data)
                         new_weight = path_weight + edge_weight
                         
                         # Recursive call with updated state
@@ -142,7 +162,7 @@ class ExhaustiveDFSArbitrage:
         
         return cycles
 
-    def _calculate_edge_weight(self, edge_data: Dict) -> float:
+    def _calculate_adjusted_weight(self, edge_data: Dict) -> float:
         """
         Calculate adjusted edge weight including slippage and price impact
         """
@@ -154,7 +174,7 @@ class ExhaustiveDFSArbitrage:
         slippage_decimal = slippage_bps / 10000.0
         
         # Adjust weight with market factors
-        adjusted_weight = base_weight + slippage_decimal + abs(price_impact_pct) / 100.0
+        adjusted_weight = base_weight + slippage_decimal + abs(price_impact_pct)
         
         return adjusted_weight
 
@@ -189,6 +209,7 @@ class ExhaustiveDFSArbitrage:
             # Calculate total path weight using unified method
             total_weight = 0.0
             total_gas_fee = 0.0
+            total_trading_fee = 0.0
 
             for i in range(len(path) - 1):
                 from_token = path[i]
@@ -199,7 +220,7 @@ class ExhaustiveDFSArbitrage:
 
                 # Get edge data
                 edge_data = graph[from_token][to_token]
-                total_weight += self._calculate_edge_weight(edge_data)
+                total_weight += self._calculate_adjusted_weight(edge_data)
                 total_gas_fee += edge_data.get('gas_fee', 0)
 
             # Check profitability
@@ -209,24 +230,29 @@ class ExhaustiveDFSArbitrage:
             # Calculate profit ratio
             profit_ratio = math.exp(-total_weight) - 1
             
-            # Estimate gas fees in SOL and net profit
-            gas_fee_sol = total_gas_fee * 1e-9
+            # Calculate gas fees only (outAmount already accounts for trading fees)
+            gas_fee_sol = total_gas_fee * 1e-9  # Convert lamports to SOL
+            total_fee_sol = gas_fee_sol  # Only gas fees, trading fees already in outAmount
+            
+            # Calculate net profit after all fees
             gross_profit = self.base_amount * profit_ratio
-            net_profit = gross_profit - gas_fee_sol
+            net_profit = gross_profit - total_fee_sol
             net_profit_ratio = net_profit / self.base_amount
 
             # Simple confidence score based on profit magnitude
             confidence_score = min(1.0, max(0.0, net_profit_ratio * 10))
 
             # Generate path symbols
-            path_symbols = [f"{addr[:4]}...{addr[-4:]}" for addr in path]
+            path_symbols = []
+            for addr in path:
+                path_symbols.append(get_node_symbol(graph, addr))
 
             return ArbitrageOpportunity(
                 path=path,
                 path_symbols=path_symbols,
                 profit_ratio=net_profit_ratio,
                 total_weight=total_weight,
-                total_fee=gas_fee_sol,
+                total_fee=total_fee_sol,
                 hop_count=len(path) - 1,
                 confidence_score=confidence_score,
                 estimated_profit_sol=net_profit

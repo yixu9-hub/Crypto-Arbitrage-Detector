@@ -4,13 +4,13 @@ Arbitrage test data from real-world crypto exchanges
 import math
 import sys
 import os
-import networkx as nx
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from crypto_arbitrage_detector.utils.data_structures import EdgePairs
 
 
+# Test data for arbitrage algorithms--old data format
 arbitrage_test_edges = [
-
 EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='So11111111111111111111111111111111111111112', from_symbol='JLP', to_symbol='SOL', in_amount=300300.30030030024, out_amount=301922.0, price_ratio=30.1922, weight=-3.4075836128755843, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.0, total_fee=60.06006006006005, gas_fee=5204),
 EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh', from_symbol='JLP', to_symbol='WBTC', in_amount=300300.30030030024, out_amount=297016.0452, price_ratio=0.0042, weight=5.472670753692815, slippage_bps=50, platform_fee=0.0, price_impact_pct=0.014952602335865744, total_fee=150.15015015015013, gas_fee=5109),
 EdgePairs(from_token='27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4', to_token='4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', from_symbol='JLP', to_symbol='RAY', in_amount=300300.30030030024, out_amount=301530.5266, price_ratio=1.9142, weight=-0.649299780779669, slippage_bps=50, platform_fee=0.0, price_impact_pct=9.08802832909845e-05, total_fee=157.03003003003002, gas_fee=5115),
@@ -122,8 +122,8 @@ def create_test_graph_from_edges(edges: list) -> nx.DiGraph:
             in_amount=edge.in_amount,
             weight=edge.weight,
             out_amount=edge.out_amount,
-            from_symbol=edge.from_token,
-            to_symbol=edge.to_token,
+            from_symbol=edge.from_symbol,
+            to_symbol=edge.to_symbol,
             price_ratio=edge.price_ratio,
             slippage_bps=edge.slippage_bps,
             platform_fee=edge.platform_fee,

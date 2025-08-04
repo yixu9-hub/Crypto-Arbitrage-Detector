@@ -52,15 +52,16 @@ class EdgePairs:
 
 @dataclass
 class ArbitrageOpportunity:
-    path: List[str]
-    path_symbols: List[str]
-    profit_ratio: float
-    total_weight: float
-    total_fee: float
-    hop_count: int
-    confidence_score: float
-    estimated_profit_sol: float
+    path: List[str] # list of token addresses in the path
+    path_symbols: List[str] # symbols of tokens in the path
+    profit_ratio: float 
+    total_weight: float # total weight of the path
+    total_fee: float # total fee for the arbitrage
+    hop_count: int # number of hops in the path
+    confidence_score: float # confidence score of the opportunity
+    estimated_profit_sol: float # estimated profit in SOL
 
+# Ensure hop_count is set correctly
     def __post_init__(self):
         if not self.hop_count:
             self.hop_count = len(self.path) - 1
