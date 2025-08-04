@@ -7,7 +7,7 @@ import pickle
 from typing import List, Dict
 from collections import defaultdict
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo
-from jupiter_client import JupiterAPIClient
+from crypto_arbitrage_detector.scripts.jupiter_client import JupiterAPIClient
 from crypto_arbitrage_detector.configs.request_config import dexscreener_api, token_ranking
 from datetime import datetime
 from crypto_arbitrage_detector.utils.data_structures import VolumeRanking

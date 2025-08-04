@@ -125,8 +125,6 @@ async def get_edge_pairs(
             try:
                 out_amount = float(data["outAmount"])
                 in_amount = float(data["inAmount"])
-                price_ratio = out_amount / in_amount
-                weight = -math.log(price_ratio)
 
                 # Calculate total fee in SOL
                 total_fee_sol = 0.0
@@ -157,6 +155,9 @@ async def get_edge_pairs(
 
                 in_mint = data["inputMint"]
                 in_amount_in_sol = in_amount * price_map.get(in_mint, 0.0)
+                
+                price_ratio = out_amount_in_sol / in_amount_in_sol
+                weight = -math.log(price_ratio)
 
                 # Create EdgePairs object
                 edge = EdgePairs(
