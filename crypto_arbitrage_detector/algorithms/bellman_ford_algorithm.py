@@ -245,9 +245,9 @@ class BellmanFordArbitrage:
                 total_weight += weight
                 total_slippage += slippage_decimal
                 total_price_impact += abs(price_impact_pct)
-            total_gas_fee += edge_data.get('gas_fee', 0)
+                total_gas_fee += edge_data.get('gas_fee', 0)
             
-            adjusted_weight = total_weight + \
+                adjusted_weight = total_weight + \
                 total_slippage + total_price_impact
 
             #print(f" Total weight: {total_weight:.6f}, adjusted: {adjusted_weight:.6f}")

@@ -3,12 +3,14 @@ import sys
 import subprocess
 from datetime import datetime, timedelta
 import pickle
+import networkx as nx
 from typing import List
 from crypto_arbitrage_detector.utils.data_structures import EdgePairs, TokenInfo
 from crypto_arbitrage_detector.utils.get_quote_pair import get_edge_pairs
 from crypto_arbitrage_detector.scripts.token_loader import TokenLoader
 from crypto_arbitrage_detector.utils.graph_structure import build_graph_from_edge_lists
 from crypto_arbitrage_detector.utils.graph_utils import analyze_graph
+from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api, jupiter_swap_api
 
 # Function to check if token file exists and is fresh
 def check_token_file():
@@ -114,31 +116,19 @@ def load_popular_tokens():
             "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",   # mSOL
         ]
 
-# Function to retrieve edges from the test data
-async def retrive_edges():
-    """Retrieve edges from the test data."""
+# Function to retrieve edges from token data
+async def retrive_edges(api_key: str = jupiter_quote_api["api_key"],
+        quote_url: str = jupiter_quote_api["base_url"],
+        swap_url: str = jupiter_swap_api["base_url"]):
+    """Retrieve edges from token data."""
     try:
-        # 读取真实数据用于测试
         with open("data/enriched_tokens.pkl", "rb") as f:
             TokenLists: List[TokenInfo] = pickle.load(f)
-        print(f"✅ Loaded {len(TokenLists)} tokens from pickle file\n")
-        
-        if not TokenLists or len(TokenLists) == 0:
-            print("❌ No tokens loaded from pickle file")
-            return []
-        
-        # Limit to first 3 tokens for testing to avoid API rate limits
-        test_tokens = TokenLists[:3]
-        print(f"🔧 Using first {len(test_tokens)} tokens for testing (to avoid API rate limits)")
-        
-        edge_pairs: List[EdgePairs] = await get_edge_pairs(test_tokens)
-        print(f"✅ Generated {len(edge_pairs)} edge pairs")
-        
-        if len(edge_pairs) == 0:
-            print("❌ No edge pairs generated - likely due to API rate limits or errors")
-            return []
-            
-        return edge_pairs
+        edges: List[EdgePairs] = await get_edge_pairs(
+            token_list = TokenLists, api_key = api_key,
+            quote_url= quote_url,
+            swap_url = swap_url)
+        return edges
         
     except FileNotFoundError:
         print("❌ enriched_tokens.pkl file not found")
@@ -146,3 +136,176 @@ async def retrive_edges():
     except Exception as e:
         print(f"❌ Error in retrive_edges: {str(e)}")
         return []
+
+def visualize_graph_streamlit(G: nx.DiGraph):
+    '''
+    Streamlit graph visualization function using Plotly.
+    Shows nodes as points and edges with detailed information on hover.
+
+    Args:
+        G: NetworkX directed graph
+
+    Returns:
+        fig: Plotly figure object for st.plotly_chart()
+    '''
+    if G is None:
+        raise ValueError("Graph cannot be None")
+
+    if not isinstance(G, nx.DiGraph):
+        raise TypeError(f"Expected nx.DiGraph, got {type(G)}")
+
+    if G.number_of_nodes() == 0:
+        raise ValueError("Graph has no nodes to visualize")
+
+    import plotly.graph_objects as go
+    
+    # Create layout for better visualization
+    pos = nx.spring_layout(G, k=3, iterations=50)
+
+    # Create edge traces
+    edge_x = []
+    edge_y = []
+    edge_text = []
+    
+    for from_node, to_node, edge_data in G.edges(data=True):
+        x0, y0 = pos[from_node]
+        x1, y1 = pos[to_node]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+        
+        # Create edge label with weight and fee info
+        weight = edge_data.get('weight', 'N/A')
+        total_fee = edge_data.get('total_fee', 'N/A')
+        price_ratio = edge_data.get('price_ratio', 'N/A')
+        
+        weight_str = f"{weight:.4f}" if isinstance(weight, (int, float)) else str(weight)
+        total_fee_str = f"{total_fee:.4f}" if isinstance(total_fee, (int, float)) else str(total_fee)
+        price_ratio_str = f"{price_ratio:.4f}" if isinstance(price_ratio, (int, float)) else str(price_ratio)
+        
+        # Get symbols for display
+        from_symbol = edge_data.get('from_symbol', from_node[:8])
+        to_symbol = edge_data.get('to_symbol', to_node[:8])
+        
+        edge_text.append(f"{from_symbol} → {to_symbol}<br>Weight: {weight_str}<br>Fee: {total_fee_str}<br>Price Ratio: {price_ratio_str}")
+    
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=3, color='#1f77b4'),
+        hoverinfo='text',
+        text=edge_text,
+        mode='lines',
+        name='Edges',
+        opacity=0.8
+    )
+    
+    # Create node traces
+    node_x = []
+    node_y = []
+    node_text = []
+    node_hover_text = []
+    
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        
+        # Get symbol for display
+        symbol = get_node_symbol(G, node)
+        if symbol:
+            node_text.append(symbol)
+            node_hover_text.append(f"Token: {symbol}<br>Address: {node[:8]}...")
+        else:
+            # Shorten long addresses for display
+            if len(node) > 10:
+                display_text = node[:6] + "..." + node[-4:]
+            else:
+                display_text = node
+            node_text.append(display_text)
+            node_hover_text.append(f"Token: {display_text}<br>Address: {node}")
+    
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers+text',
+        hoverinfo='text',
+        text=node_text,
+        hovertext=node_hover_text,
+        textposition="middle center",
+        marker=dict(
+            size=25,
+            color='lightblue',
+            line=dict(width=2, color='black')
+        ),
+        name='Nodes'
+    )
+    
+    # Create edge annotations for direct display on graph
+    edge_annotations = []
+    for from_node, to_node, edge_data in G.edges(data=True):
+        x0, y0 = pos[from_node]
+        x1, y1 = pos[to_node]
+        
+        # Calculate midpoint for annotation
+        mid_x = (x0 + x1) / 2
+        mid_y = (y0 + y1) / 2
+        
+        # Get symbols for display
+        from_symbol = edge_data.get('from_symbol', from_node[:8])
+        to_symbol = edge_data.get('to_symbol', to_node[:8])
+        
+        # Create annotation text
+        weight = edge_data.get('weight', 'N/A')
+        weight_str = f"{weight:.2f}" if isinstance(weight, (int, float)) else str(weight)
+        
+        annotation_text = f"{from_symbol}→{to_symbol}<br>W:{weight_str}"
+        
+        edge_annotations.append(dict(
+            x=mid_x,
+            y=mid_y,
+            text=annotation_text,
+            showarrow=False,
+            font=dict(size=10, color='red'),
+            bgcolor='white',
+            bordercolor='black',
+            borderwidth=1
+        ))
+    
+    fig = go.Figure(data=[edge_trace, node_trace],
+                   layout=go.Layout(
+                       title=dict(
+                           text=f'Token Swap Network Graph ({G.number_of_nodes()} nodes, {G.number_of_edges()} edges)',
+                           font=dict(size=16)
+                       ),
+                       showlegend=False,
+                       hovermode='closest',
+                       margin=dict(b=20, l=5, r=5, t=40),
+                       annotations=edge_annotations + [dict(
+                           text="Edge labels show: Symbol→Symbol<br>W:Weight",
+                           showarrow=False,
+                           xref="paper", yref="paper",
+                           x=0.005, y=-0.002,
+                           xanchor="left", yanchor="bottom",
+                           font=dict(size=12)
+                       )],
+                       xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                       yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+                   ))
+    
+    return fig
+
+def get_node_symbol(graph: nx.DiGraph, node: str) -> str:
+    """
+    Get display symbol for a node address
+
+    Args:
+        graph: The graph containing edge data
+        node: Node address to get symbol for
+
+    Returns:
+        Symbol string or shortened address if not found
+    """
+    # Check if node exists in graph
+    for from_node, to_node, edge_data in graph.edges(data=True):
+        if node == from_node:
+            return edge_data['from_symbol']  # Get symbol directly
+        elif node == to_node:
+            return edge_data['to_symbol']
