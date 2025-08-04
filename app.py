@@ -12,6 +12,7 @@ import asyncio
 import aiohttp
 from typing import List, Dict, Tuple, Optional
 import numpy as np
+import hashlib
 
 from crypto_arbitrage_detector.utils.helper import check_token_file, fetch_jupiter_tokens, fetch_enriched_tokens, load_popular_tokens, retrive_edges
 from crypto_arbitrage_detector.utils.graph_structure import build_graph_from_edge_lists
@@ -161,7 +162,7 @@ min_profit_threshold = st.sidebar.slider(
     "Minimum Profit Threshold (%)", 
     min_value=0.1, 
     max_value=5.0, 
-    value=1.0, 
+    value=0.5, 
     step=0.1
 ) / 100
 
@@ -173,10 +174,12 @@ max_slippage = st.sidebar.slider(
     step=0.1
 ) / 100
 
-base_amount = st.sidebar.selectbox(
-    "Base Amount",
-    options=[0.1, 1.0, 5.0, 10.0, 50.0],
-    index=2
+base_amount = st.sidebar.number_input(
+    "Base Amount (SOL)",
+    min_value=0.01,
+    value=5.0,
+    step=0.1,
+    format="%.2f"
 )
 
 max_hops = st.sidebar.slider(
@@ -186,19 +189,75 @@ max_hops = st.sidebar.slider(
     value=4
 )
 
+# Data Source Selection
+st.sidebar.subheader("📊 Data Source")
+data_source = st.sidebar.selectbox(
+    "Choose data source for arbitrage detection",
+    options=[
+        "🎯 Historical Token Data",
+        "🆓 Free API (Limited, May Fail)",
+        "💎 Premium API (Jupiter Membership Required)"
+    ],
+    help="Select your preferred data source for testing arbitrage opportunities"
+)
+
+# API Configuration for Premium
+api_key = None
+quote_url = None
+swap_url = None
+
+if data_source == "💎 Premium API (Jupiter Membership Required)":
+    st.sidebar.subheader("🔑 Premium API Configuration")
+    
+    # Info about Jupiter membership
+    st.sidebar.info("""
+    **Jupiter Premium Membership Required**
+    
+    Get unlimited API access at: [portal.jup.ag/onboard](https://portal.jup.ag/onboard)
+    
+    After purchasing membership, you'll receive:
+    - API Key
+    - Quote URL
+    - Swap URL
+    """)
+    
+    api_key = st.sidebar.text_input(
+        "API Key",
+        type="password",
+        help="Enter your Jupiter API key"
+    )
+    
+    quote_url = st.sidebar.text_input(
+        "Quote URL",
+        value="https://quote-api.jup.ag/v6/quote",
+        help="Jupiter quote API endpoint"
+    )
+    
+    swap_url = st.sidebar.text_input(
+        "Swap URL", 
+        value="https://quote-api.jup.ag/v6/swap",
+        help="Jupiter swap API endpoint"
+    )
+
 # Algorithm selection
 st.sidebar.subheader("Algorithm Selection")
 selected_algorithms = st.sidebar.multiselect(
-    "Select algorithms to use (choose 1, 2, or all)",
-    options=["bellman_ford", "triangle", "two_hop"],
-    default=["bellman_ford"]
+    "Select algorithms to use (leave empty for all)",
+    options=["bellman_ford", "triangle", "two_hop", "exhaustive_DFS"],
+    default=["bellman_ford", "triangle", "two_hop", "exhaustive_DFS"]
 )
 enable_bellman_ford = "bellman_ford" in selected_algorithms
 enable_triangle = "triangle" in selected_algorithms
 enable_two_hop = "two_hop" in selected_algorithms
+enable_exhaustive_DFS = "exhaustive_DFS" in selected_algorithms
 
 # Token selection
 st.sidebar.subheader("Token Selection")
+
+# Initialize selected tokens in session state
+if 'selected_tokens' not in st.session_state:
+    st.session_state.selected_tokens = []
+
 popular_tokens = [
     "So11111111111111111111111111111111111111112",  # WSOL
     "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
@@ -206,102 +265,199 @@ popular_tokens = [
     "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",   # mSOL
 ]
 
-selected_tokens = st.sidebar.multiselect(
-    "Select tokens to monitor (leave empty for all popular tokens)",
-    options=popular_tokens,
-    default=popular_tokens[:10]
-)
+# Token selection (disabled for Historical Token Data)
+if data_source == "🎯 Historical Token Data":
+    st.sidebar.info("📊 Using predefined historical token data - token selection disabled")
+    selected_tokens = popular_tokens  # Use default tokens for historical data
+else:
+    # Token input
+    new_token = st.sidebar.text_input(
+        "Add Token Address (leave empty for recommended tokens)",
+        placeholder="Enter Solana token address...",
+        help="Enter a Solana token address to add to monitoring list"
+    )
 
-# Initialize the arbitrage detector and graph if not already done
-if st.session_state.detector is None:
+    # Add token button
+    if st.sidebar.button("➕ Add Token"):
+        if new_token and new_token not in st.session_state.selected_tokens:
+            st.session_state.selected_tokens.append(new_token)  # Add the new token to the list
+            st.sidebar.success(f"✅ Added token: {new_token[:8]}...{new_token[-8:]}")
+            st.sidebar.write(f"Debug: new_token = '{new_token}'")
+            st.sidebar.write(f"Debug: current tokens = {st.session_state.selected_tokens}")
+            st.rerun()
+        elif not new_token:
+            st.sidebar.error("❌ Please enter a token address")
+        elif new_token in st.session_state.selected_tokens:
+            st.sidebar.warning("⚠️ Token already in list")
+        else:
+            st.sidebar.error("❌ Invalid token address")
+
+    # Remove token button
+    if st.sidebar.button("❌ Remove All Tokens"):
+        st.session_state.selected_tokens = []
+        st.rerun()
+
+    # Use default tokens if none selected, otherwise use custom tokens
+    if not st.session_state.selected_tokens:
+        selected_tokens = popular_tokens
+    else:
+        selected_tokens = st.session_state.selected_tokens
+
+# Initialize detector hash tracking
+if 'detector_hash' not in st.session_state:
+    st.session_state.detector_hash = None
+
+# Create hash of detector parameters
+detector_params = f"{min_profit_threshold}_{max_hops}_{base_amount}"
+current_detector_hash = hashlib.md5(detector_params.encode()).hexdigest()
+
+# Initialize or refresh detector only when parameters change
+if (st.session_state.detector is None or 
+    st.session_state.detector_hash != current_detector_hash):
     st.session_state.detector = IntegratedArbitrageDetector(min_profit_threshold, max_hops, base_amount)
+    st.session_state.detector_hash = current_detector_hash
+
 detector = st.session_state.detector
 
-# Add a refresh button in sidebar
-if st.sidebar.button("🔄 Refresh Quote Data"):
-    st.session_state.edges = None
-    st.session_state.graph = None
-    st.rerun()
+# Add refresh buttons based on data source
+if data_source == "🆓 Free API (Limited, May Fail)":
+    if st.sidebar.button("🔄 Refresh Free API Data"):
+        st.session_state.edges = None
+        st.session_state.graph = None
+        st.rerun()
+elif data_source == "💎 Premium API (Jupiter Membership Required)":
+    if st.sidebar.button("🔄 Refresh Premium API Data"):
+        st.session_state.edges = None
+        st.session_state.graph = None
+        st.rerun()
 
-# ARTIFICIAL DATA FOR TESTING - Creates a clear arbitrage opportunity
+# Data loading based on selected source
 if st.session_state.edges is None:
     from crypto_arbitrage_detector.utils.data_structures import EdgePairs
     
-    # Create artificial edges that form a profitable arbitrage cycle
-    # Cycle: SOL -> USDC -> USDT -> SOL (profitable)
-    st.session_state.edges = [
-        # SOL -> USDC (1 SOL = 0.90 USDC) - Moderate cost
-        EdgePairs(
-            from_token="So11111111111111111111111111111111111111112",  # SOL
-            to_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
-            price_ratio=0.90,  # 1 SOL = 0.90 USDC
-            weight=0.10,  # Positive weight (cost)
-            slippage_bps=50,
-            platform_fee=0.001,
-            price_impact_pct=0.5,
-            total_fee=0.002
-        ),
-        # USDC -> USDT (1 USDC = 1.05 USDT) - Moderate profit
-        EdgePairs(
-            from_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
-            to_token="Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",  # USDT
-            price_ratio=1.05,  # 1 USDC = 1.05 USDT
-            weight=-0.05,  # Negative weight (profit)
-            slippage_bps=30,
-            platform_fee=0.0005,
-            price_impact_pct=0.2,
-            total_fee=0.001
-        ),
-        # USDT -> SOL (1 USDT = 1.20 SOL) - Large profit
-        EdgePairs(
-            from_token="Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",  # USDT
-            to_token="So11111111111111111111111111111111111111112",  # SOL
-            price_ratio=1.20,  # 1 USDT = 1.20 SOL
-            weight=-0.15,  # Large negative weight (profit)
-            slippage_bps=40,
-            platform_fee=0.001,
-            price_impact_pct=0.3,
-            total_fee=0.0015
-        ),
-        # Direct USDC -> SOL (1 USDC = 1.15 SOL) - Direct large profit
-        EdgePairs(
-            from_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
-            to_token="So11111111111111111111111111111111111111112",  # SOL
-            price_ratio=1.15,  # 1 USDC = 1.15 SOL
-            weight=-0.20,  # Large negative weight (profit)
-            slippage_bps=45,
-            platform_fee=0.0015,
-            price_impact_pct=0.4,
-            total_fee=0.002
-        ),
-        # Additional edges to create more opportunities
-        # SOL -> mSOL (1 SOL = 0.95 mSOL)
-        EdgePairs(
-            from_token="So11111111111111111111111111111111111111112",  # SOL
-            to_token="mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",  # mSOL
-            price_ratio=0.95,
-            weight=0.05,
-            slippage_bps=60,
-            platform_fee=0.002,
-            price_impact_pct=0.8,
-            total_fee=0.003
-        ),
-        # mSOL -> USDC (1 mSOL = 0.90 USDC)
-        EdgePairs(
-            from_token="mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",  # mSOL
-            to_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
-            price_ratio=0.90,
-            weight=0.10,
-            slippage_bps=70,
-            platform_fee=0.0025,
-            price_impact_pct=1.0,
-            total_fee=0.004
-        )
-    ]
-
-# REAL DATA (commented out for testing):
-# if st.session_state.edges is None:
-#     st.session_state.edges = asyncio.run(retrive_edges())
+    if data_source == "🎯 Historical Token Data":
+        # ARTIFICIAL DATA FOR TESTING - Creates a clear arbitrage opportunity
+        st.info("🎯 Using artificial data with guaranteed arbitrage opportunities for testing")
+        
+        # Create artificial edges that form a profitable arbitrage cycle
+        # Cycle: SOL -> USDC -> USDT -> SOL (profitable)
+        st.session_state.edges = [
+            # SOL -> USDC (1 SOL = 0.90 USDC) - Moderate cost
+            EdgePairs(
+                from_token="So11111111111111111111111111111111111111112",  # SOL
+                to_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+                in_amount=1.0,  # 1 SOL input
+                out_amount=0.90,  # 0.90 USDC output
+                price_ratio=0.90,  # 1 SOL = 0.90 USDC
+                weight=0.10,  # Positive weight (cost)
+                slippage_bps=50,
+                platform_fee=0.001,
+                price_impact_pct=0.5,
+                total_fee=0.002,
+                gas_fee=25000
+            ),
+            # USDC -> USDT (1 USDC = 1.05 USDT) - Moderate profit
+            EdgePairs(
+                from_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+                to_token="Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",  # USDT
+                in_amount=0.90,  # 0.90 USDC input
+                out_amount=0.945,  # 0.945 USDT output
+                price_ratio=1.05,  # 1 USDC = 1.05 USDT
+                weight=-0.05,  # Negative weight (profit)
+                slippage_bps=30,
+                platform_fee=0.0005,
+                price_impact_pct=0.2,
+                total_fee=0.001,
+                gas_fee=25000
+            ),
+            # USDT -> SOL (1 USDT = 1.20 SOL) - Large profit
+            EdgePairs(
+                from_token="Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",  # USDT
+                to_token="So11111111111111111111111111111111111111112",  # SOL
+                in_amount=0.945,  # 0.945 USDT input
+                out_amount=1.134,  # 1.134 SOL output
+                price_ratio=1.20,  # 1 USDT = 1.20 SOL
+                weight=-0.15,  # Large negative weight (profit)
+                slippage_bps=40,
+                platform_fee=0.001,
+                price_impact_pct=0.3,
+                total_fee=0.0015,
+                gas_fee=25000
+            ),
+            # Direct USDC -> SOL (1 USDC = 1.15 SOL) - Direct large profit
+            EdgePairs(
+                from_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+                to_token="So11111111111111111111111111111111111111112",  # SOL
+                in_amount=0.90,  # 0.90 USDC input
+                out_amount=1.035,  # 1.035 SOL output
+                price_ratio=1.15,  # 1 USDC = 1.15 SOL
+                weight=-0.20,  # Large negative weight (profit)
+                slippage_bps=45,
+                platform_fee=0.0015,
+                price_impact_pct=0.4,
+                total_fee=0.002,
+                gas_fee=25000
+            ),
+            # Additional edges to create more opportunities
+            # SOL -> mSOL (1 SOL = 0.95 mSOL)
+            EdgePairs(
+                from_token="So11111111111111111111111111111111111111112",  # SOL
+                to_token="mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",  # mSOL
+                in_amount=1.0,  # 1 SOL input
+                out_amount=0.95,  # 0.95 mSOL output
+                price_ratio=0.95,
+                weight=0.05,
+                slippage_bps=60,
+                platform_fee=0.002,
+                price_impact_pct=0.8,
+                total_fee=0.003,
+                gas_fee=25000
+            ),
+            # mSOL -> USDC (1 mSOL = 0.90 USDC)
+            EdgePairs(
+                from_token="mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",  # mSOL
+                to_token="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+                in_amount=0.95,  # 0.95 mSOL input
+                out_amount=0.855,  # 0.855 USDC output
+                price_ratio=0.90,
+                weight=0.10,
+                slippage_bps=70,
+                platform_fee=0.0025,
+                price_impact_pct=1.0,
+                total_fee=0.004,
+                gas_fee=25000
+            )
+        ]
+        
+    elif data_source == "🆓 Free API (Limited, May Fail)":
+        st.warning("🆓 Using free Jupiter API - may have rate limits and potential failures")
+        try:
+            with st.spinner("Fetching real-time data from Jupiter API..."):
+                st.session_state.edges = asyncio.run(retrive_edges())
+            st.success("✅ Real-time data loaded successfully")
+        except Exception as e:
+            st.error(f"❌ Failed to fetch real-time data: {str(e)}")
+            st.info("💡 Try using 'Recommended Tokens' for testing or upgrade to Premium API")
+            # Fallback to artificial data
+            st.session_state.edges = None
+            st.rerun()
+            
+    elif data_source == "💎 Premium API (Jupiter Membership Required)":
+        if not api_key:
+            st.error("❌ API Key required for Premium API access")
+            st.info("💡 Please enter your Jupiter API key or switch to another data source")
+            st.stop()
+        else:
+            st.success("💎 Using Premium Jupiter API with unlimited access")
+            try:
+                with st.spinner("Fetching premium real-time data..."):
+                    # TODO: Implement premium API call with custom endpoints
+                    st.session_state.edges = asyncio.run(retrive_edges())
+                st.success("✅ Premium data loaded successfully")
+            except Exception as e:
+                st.error(f"❌ Failed to fetch premium data: {str(e)}")
+                st.info("💡 Please check your API key and endpoints")
+                st.stop()
 
 if st.session_state.graph is None:
     st.session_state.graph = build_graph_from_edge_lists(st.session_state.edges)
@@ -406,13 +562,13 @@ with tab2:
                     st.write("**Path Details:**")
                     if len(path) > 1:
                         for j, (from_token, to_token) in enumerate(zip(path, path[1:] + [path[0]])):
-                            st.write(f"Step {j+1}: {from_token[:8]}... → {to_token[:8]}...")
+                            st.write(f"Token {j+1}: {from_token}")
                     else:
                         st.write("No valid path found")
                 
                 with col2:
                     st.metric("Expected Profit", f"{profit:.4f} SOL")
-                    st.metric("Path Length", len(path))
+                    st.metric("Path Length", len(path) - 1)
                     st.metric("Est. Gas Cost", f"{total_fee:.4f} SOL")
                     
                     if profit > 0:

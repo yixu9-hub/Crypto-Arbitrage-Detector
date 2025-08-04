@@ -95,7 +95,7 @@ def load_popular_tokens():
         
         if loaded_tokens and len(loaded_tokens) > 0:
             # Extract top tokens by volume rank
-            top_tokens = sorted(loaded_tokens, key=lambda x: getattr(x, 'volume_rank', 999))[:30]
+            top_tokens = sorted(loaded_tokens, key=lambda x: getattr(x, 'volume_rank', 999))[:8]
             return [token.address for token in top_tokens]
         else:
             # Fallback to default tokens if loading fails
