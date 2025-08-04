@@ -8,44 +8,51 @@ from solders.instruction import Instruction, AccountMeta, CompiledInstruction
 from solders.message import MessageV0, MessageHeader, to_bytes_versioned
 from solders.rpc.responses import GetLatestBlockhashResp
 from solana.rpc.async_api import AsyncClient
+from spl.token.constants import TOKEN_PROGRAM_ID
+from spl.token.instructions import ASSOCIATED_TOKEN_PROGRAM_ID, get_associated_token_address, create_associated_token_account
+from spl.token.instructions import get_associated_token_address, create_associated_token_account
 
 
 # Token program + ATA program (固定地址)
-TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
-ASSOCIATED_TOKEN_PROGRAM_ID = Pubkey.from_string("ATokenGPvbdGVxr1L3cPA8Fzw6R8jzBaxV6zTx4v3J2")
-
+#TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+#ASSOCIATED_TOKEN_PROGRAM_ID = Pubkey.from_string("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
+SYSVAR_RENT_PUBKEY = Pubkey.from_string("SysvarRent111111111111111111111111111111111")
 
 # 根据 SPL 规则手动生成 ATA 地址
+"""
 def get_associated_token_address(owner: Pubkey, mint: Pubkey) -> Pubkey:
     seeds = [
+        b"ata",
         bytes(owner),
         bytes(TOKEN_PROGRAM_ID),
         bytes(mint),
     ]
-    ata_pubkey, _ = Pubkey.find_program_address(seeds, ASSOCIATED_TOKEN_PROGRAM_ID)
-    return ata_pubkey
-
+    ata, _ = Pubkey.find_program_address(seeds, ASSOCIATED_TOKEN_PROGRAM_ID)
+    print(f"ATA Address: {ata}")
+    return ata
+"""
 
 # 构造 CreateAssociatedTokenAccount 的 Compiled Instruction（用 solders）
 def create_compiled_ata_instruction(payer: Pubkey, owner: Pubkey, mint: Pubkey):
-    SYSVAR_RENT_PUBKEY = Pubkey.from_string("SysvarRent111111111111111111111111111111111")
+
+    # ATA address
     ata = get_associated_token_address(owner, mint)
 
-    # 明确 account_keys 顺序（一定要和下方 CompiledInstruction 的索引对应）
+    # 手动 account_keys 列表，即使 payer 和 owner 相同，也要重复放入
     account_keys = [
-        payer,        # index 0
-        ata,          # index 1
-        owner,        # index 2
-        mint,         # index 3
-        TOKEN_PROGRAM_ID,       # index 4
-        SYSVAR_RENT_PUBKEY,     # index 5
-        ASSOCIATED_TOKEN_PROGRAM_ID # index 6
+        payer,  # 0 - payer
+        ata,    # 1 - ATA
+        #owner,  # 2 - owner
+        mint,   # 3 - mint
+        TOKEN_PROGRAM_ID,        # 4
+        SYSVAR_RENT_PUBKEY,      # 5
+        ASSOCIATED_TOKEN_PROGRAM_ID  # 6
     ]
 
-    # 构造 CompiledInstruction，program_id_index 是 program_id 在 account_keys 中的索引
+    # 构造 CompiledInstruction
     compiled_ix = CompiledInstruction(
-        program_id_index=account_keys.index(ASSOCIATED_TOKEN_PROGRAM_ID),
-        accounts=bytes([0, 1, 2, 3, 4, 5, 6]),  # 每个 account 在 account_keys 中的索引
+        program_id_index=5,  # ASSOCIATED_TOKEN_PROGRAM_ID 在 account_keys 中的 index
+        accounts=bytes([0, 1, 0, 2, 3, 4]),
         data=b""
     )
 
@@ -58,40 +65,37 @@ async def ensure_single_ata_exists(
     mint: Pubkey,
     payer: Keypair 
 ):
-    ata = get_associated_token_address(owner=user_wallet, mint=mint)
+    ata = get_associated_token_address(payer.pubkey(), mint=mint)
 
     # 检查 ATA 是否存在
     resp = await client.get_account_info(ata)
+    print(resp)
     if resp.value is not None:
         return ata
 
-    # 构造 Instruction
     compiled_ix, account_keys = create_compiled_ata_instruction(payer.pubkey(), user_wallet, mint)
-
-    # 构造 MessageV0 + Transaction
-    header = MessageHeader(num_required_signatures=1, num_readonly_signed_accounts=0, num_readonly_unsigned_accounts=3)
-    blockhash_resp: GetLatestBlockhashResp = await client.get_latest_blockhash()
-    recent_blockhash: Hash = blockhash_resp.value.blockhash
-
-    msg = MessageV0(
-        header=header,
-        account_keys=account_keys,  # 顺序很重要！
-        recent_blockhash=recent_blockhash,
-        instructions=[compiled_ix],
-        address_table_lookups=[]  # 目前空
+    # 构造 Instruction
+    header = MessageHeader(
+        num_required_signatures=1,
+        num_readonly_signed_accounts=0,
+        num_readonly_unsigned_accounts=3
     )
 
-    assert isinstance(header, MessageHeader)
-    assert isinstance(account_keys, list) and all(isinstance(k, Pubkey) for k in account_keys)
-    assert isinstance(recent_blockhash, Hash)
-    assert isinstance(compiled_ix, CompiledInstruction)
-    assert isinstance(msg, MessageV0)
-    # 手动签名
-    serialized_msg = to_bytes_versioned(msg)
-    signature = payer.sign_message(serialized_msg)
+    blockhash_resp = await client.get_latest_blockhash()
+    recent_blockhash = blockhash_resp.value.blockhash
+
+    # 构造 MessageV0
+    msg = MessageV0(
+        header=header,
+        account_keys=account_keys,
+        recent_blockhash=recent_blockhash,
+        instructions=[compiled_ix],
+        address_table_lookups=[]
+    )
 
     # 构造交易
     tx = VersionedTransaction(msg, [payer])
+    print(tx)
 
     # 发送交易
     send_resp = await client.send_transaction(tx)
@@ -128,19 +132,19 @@ async def ensure_atas_from_quote(
 
 async def main():
     # 创建测试 Keypair（生产环境请用保存的密钥）
-    USDC_MINT_DEVNET = Pubkey.from_string("BXXkv6zRCZZ7eXP2G6mRa2yRxvGGnfsfY7F7dBzvLNsZ")
+    mint = Pubkey.from_string("BWBHrYqfcjAh5dSiRwzPnY4656cApXVXmkeDmAfwBKQG")
     public_key = "2ZwR1odHjrohqrTma9us4cHfGQcbCkVSnkJZo1MeDPU1"
     private_key = ""
     public_key = Pubkey.from_string(public_key)
     payer_keypair = Keypair.from_bytes(base58.b58decode(private_key))
-    # 连接到 devnet
-    client = AsyncClient("https://api.devnet.solana.com")
+    # 连接到 mainnet RPC
+    client = AsyncClient("https://api.mainnet-beta.solana.com")
 
     # 创建 ATA，如果不存在的话
     ata = await ensure_single_ata_exists(
         client=client,
         user_wallet=public_key,
-        mint=USDC_MINT_DEVNET,
+        mint=mint,
         payer=payer_keypair,
     )
 

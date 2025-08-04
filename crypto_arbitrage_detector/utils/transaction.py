@@ -48,8 +48,8 @@ async def fetch_quote(session, input_mint, output_mint, amount, quote_url=JUPITE
     client = AsyncClient(rpc_url)
     public_key = Pubkey.from_string(user_public_key)
     payer_keypair = Keypair.from_bytes(base58.b58decode(user_private_key))
-    async with AsyncClient(rpc_url) as client:
-        await ensure_atas_from_quote(client, public_key, quote, payer_keypair)
+    #async with AsyncClient(rpc_url) as client:
+    #    await ensure_atas_from_quote(client, public_key, quote, payer_keypair)
     return quote
 
 
