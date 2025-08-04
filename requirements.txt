@@ -1,0 +1,46 @@
+# Core Solana Blockchain Dependencies
+solders==0.26.0
+solana==0.36.7
+base58==2.1.1
+
+# Web Framework and UI
+streamlit>=1.28.0
+plotly>=5.17.0
+
+# Data Processing and Analysis
+pandas>=2.0.0
+numpy>=1.24.0
+networkx>=3.1
+
+# HTTP and API Communication
+aiohttp>=3.8.0
+requests>=2.31.0
+
+# Data Visualization
+matplotlib>=3.7.0
+
+# Async Programming
+asyncio
+
+# Data Serialization
+pickle
+
+# System and File Operations
+subprocess
+os
+sys
+time
+datetime
+timedelta
+json
+hashlib
+re
+base64
+
+# Type Hints
+typing
+
+# Optional: For enhanced development experience
+# pytest>=7.4.0  # For testing
+# black>=23.0.0   # For code formatting
+# flake8>=6.0.0   # For linting

@@ -14,7 +14,16 @@ from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api, 
 
 # Function to check if token file exists and is fresh
 def check_token_file():
-    """Check if both Jupiter tokens and enriched tokens files exist and are fresh"""
+    """
+    Check if both Jupiter tokens and enriched tokens files exist and are fresh
+    Args:
+        jupiter_file (str): The file to save the Jupiter tokens to
+        enriched_file (str): The file to save the volume enriched tokens to
+    Returns:
+        bool: True if the tokens were downloaded and saved successfully, False otherwise
+        jupiter_status (str): The status of the Jupiter tokens
+        enriched_status (str): The status of the enriched tokens
+    """
     jupiter_file = "data/jupiter_tokens.json"
     enriched_file = "data/enriched_tokens.pkl"
     
@@ -58,7 +67,14 @@ def check_token_file():
 
 # Function to fetch Jupiter tokens
 def fetch_jupiter_tokens():
-    """Run the Jupiter token download script"""
+    """
+    Run the Jupiter token download script
+    Args:
+        jupiter_file (str): The file to save the Jupiter tokens to
+        enriched_file (str): The file to save the volume enriched tokens to
+    Returns:
+        bool: True if the tokens were downloaded and saved successfully, False otherwise
+    """
     try:
         # Run the download_tokens.py script
         result = subprocess.run([
@@ -74,7 +90,13 @@ def fetch_jupiter_tokens():
 
 # Function to fetch enriched tokens from Jupiter
 def fetch_enriched_tokens():
-    """Run the volume fetcher script to get enriched tokens"""
+    """
+    Run the volume fetcher script to get enriched tokens
+    Args:
+        enriched_file (str): The file to save the volume enriched tokens to
+    Returns:
+        bool: True if the tokens were fetched and saved successfully, False otherwise
+    """
     try:
         # Run the volume_fetcher.py script
         result = subprocess.run([
@@ -90,7 +112,12 @@ def fetch_enriched_tokens():
 
 # Function to load popular tokens from token_loader
 def load_popular_tokens():
-    """Load popular tokens from the token loader"""
+    """
+    Load popular tokens from the token loader
+
+    Returns:
+        list: A list of popular tokens
+    """
     try:
         token_loader = TokenLoader()
         loaded_tokens = token_loader.load_tokens()
@@ -120,7 +147,15 @@ def load_popular_tokens():
 async def retrive_edges(api_key: str = jupiter_quote_api["api_key"],
         quote_url: str = jupiter_quote_api["base_url"],
         swap_url: str = jupiter_swap_api["base_url"]):
-    """Retrieve edges from token data."""
+    """
+    Retrieve edges from token data.
+    Args:
+        api_key (str): The API key for the quote and swap endpoints
+        quote_url (str): The URL for the quote endpoint
+        swap_url (str): The URL for the swap endpoint
+    Returns:
+        list: A list of edges relaxed by price ratio and weight
+    """
     try:
         with open("data/enriched_tokens.pkl", "rb") as f:
             TokenLists: List[TokenInfo] = pickle.load(f)

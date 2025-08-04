@@ -3,30 +3,30 @@ from dataclasses import dataclass
 
 @dataclass
 class VolumeRanking:
-    address: str
-    symbol: str
-    volume_24h: float
-    liquidity_usd: float
-    rank: int
-    creation_date: str
+    address: str # token address
+    symbol: str # token symbol
+    volume_24h: float # volume of the token in the last 24 hours
+    liquidity_usd: float # liquidity of the token in USD
+    rank: int # rank of the token by volume
+    creation_date: str # creation date of the token
 
 
 @dataclass
 class TokenInfo:
     # Token information fron Jupiter list
-    address: str
-    symbol: str
-    name: str
-    decimals: int
-    logoURI: str
-    tags: List[str]
+    address: str # token address
+    symbol: str # token symbol
+    name: str # token name
+    decimals: int # token decimals
+    logoURI: str # token logo URI
+    tags: List[str] # token tags
 
     # Volume data from DexScreener
-    volume_24h: float = 0.0
-    liquidity: float = 0.0
-    price_usd: float = 0.0
-    market_cap: float = 0.0
-    price_change_24h: float = 0.0
+    volume_24h: float = 0.0 # volume of the token in the last 24 hours
+    liquidity: float = 0.0 # liquidity of the token in USD
+    price_usd: float = 0.0 # price of the token in USD
+    market_cap: float = 0.0 # market cap of the token in USD
+    price_change_24h: float = 0.0 # price change of the token in the last 24 hours
 
     def __post_init__(self):
         if self.tags is None:
