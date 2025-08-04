@@ -1,12 +1,12 @@
 '''
 Arbitrage test data from real-world crypto exchanges
 '''
-from crypto_arbitrage_detector.utils.data_structures import EdgePairs
 import math
 import sys
 import os
 import networkx as nx
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from crypto_arbitrage_detector.utils.data_structures import EdgePairs
 
 
 arbitrage_test_edges = [
@@ -119,8 +119,11 @@ def create_test_graph_from_edges(edges: list) -> nx.DiGraph:
         graph.add_edge(
             edge.from_token,
             edge.to_token,
+            in_amount=edge.in_amount,
             weight=edge.weight,
             out_amount=edge.out_amount,
+            from_symbol=edge.from_token,
+            to_symbol=edge.to_token,
             price_ratio=edge.price_ratio,
             slippage_bps=edge.slippage_bps,
             platform_fee=edge.platform_fee,
