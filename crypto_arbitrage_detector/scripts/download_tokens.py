@@ -14,7 +14,17 @@ class TokenDownloader:
         self.timeout = jupiter_tokens_api['timeout']
         
     def download_and_save_tokens(self):
-        """Download tokens from Jupiter API and save to JSON file"""
+        """
+        Download tokens from Jupiter API and save to JSON file
+
+        Args:
+            jupiter_url (str): The URL to download tokens from
+            output_file (str): The file to save the tokens to
+            timeout (int): The time limit for updating the token list
+        
+        Returns:
+            bool: True if the tokens were downloaded and saved successfully, False otherwise
+        """
         
         # Create data directory if it doesn't exist
         os.makedirs(os.path.dirname(self.output_file), exist_ok=True)

@@ -11,7 +11,15 @@ class TokenLoader:
         self.filename = filename
         self.tokens_cache = []
     
-    def load_tokens(self, filename="data/enriched_tokens.pkl", max_age_hours: int = 2) -> List[TokenInfo]:
+    def load_tokens(self, filename="data/enriched_tokens.pkl", max_age_hours: int = 24) -> List[TokenInfo]:
+        """
+        Load tokens from a pickle file
+        Args:
+            filename (str): The name of the pickle file
+            max_age_hours (int): The maximum age of the token file in hours
+        Returns:
+            List[TokenInfo]: A list of TokenInfo objects
+        """
         if not self._is_token_pickle_file_fresh(filename, max_age_hours):
             print("Token file is missing or outdated.")
             print("Run: python src/volume_fetcher.py")
@@ -29,7 +37,14 @@ class TokenLoader:
             return None
    
     def _is_token_pickle_file_fresh(self, filename: str, max_age_hours: int) -> bool:
-        """Check if token pickle file exists and is recent enough"""
+        """
+        Check if token pickle file exists and is recent enough
+        Args:
+            filename (str): The name of the pickle file
+            max_age_hours (int): The maximum age of the token file in hours
+        Returns:
+            bool: True if the token file is fresh, False otherwise
+        """
         if not os.path.exists(filename):
             return False
         
@@ -44,7 +59,6 @@ class TokenLoader:
         except:
             return False
 def main():
-    # Loading
     loaded_tokens = TokenLoader().load_tokens(filename="data/enriched_tokens.pkl")
     if loaded_tokens is not None:
         for winner in loaded_tokens:

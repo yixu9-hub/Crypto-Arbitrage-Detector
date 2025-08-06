@@ -23,6 +23,11 @@ class MassVolumeRanker:
                                      top_n: int = token_ranking["top_n"]) -> List[TokenInfo]: #change to 10 as default
         """
         Get top N tokens by volume - rank first, enrich only winners
+        Args:
+            all_tokens (List[TokenInfo]): A list of TokenInfo objects
+            top_n (int): The number of top tokens to return
+        Returns:
+            List[TokenInfo]: A list of TokenInfo objects
         """
         
         print(f"Phase 1: Ranking ALL {len(all_tokens):,} tokens by volume...")
@@ -56,7 +61,13 @@ class MassVolumeRanker:
 
 
     async def _get_volume_rankings_for_all(self, all_tokens: List[TokenInfo]) -> List[VolumeRanking]:
-        """Get volume rankings for all tokens - returns sorted rankings"""
+        """
+        Get volume rankings for all tokens - returns sorted rankings
+        Args:
+            all_tokens (List[TokenInfo]): A list of TokenInfo objects
+        Returns:
+            List[VolumeRanking]: A list of VolumeRanking objects
+        """
         
         # Create batches
         batches = self._create_address_batches(all_tokens)
@@ -71,7 +82,13 @@ class MassVolumeRanker:
         return rankings
     
     def _create_address_batches(self, tokens: List[TokenInfo]) -> List[List[str]]:
-        """Create batches of addresses"""
+        """
+        Create batches of addresses
+        Args:
+            tokens (List[TokenInfo]): A list of TokenInfo objects
+        Returns:
+            List[List[str]]: A list of lists of addresses
+        """
         batches = []
         for i in range(0, len(tokens), self.batch_size):
             batch_tokens = tokens[i:i + self.batch_size]
@@ -82,6 +99,10 @@ class MassVolumeRanker:
     async def _process_all_batches_for_ranking(self, batches: List[List[str]]) -> Dict[str, Dict]:
         """
         Process all batches concurrently
+        Args:
+            batches (List[List[str]]): A list of lists of addresses
+        Returns:
+            Dict[str, Dict]: A dictionary of token data
         """
         
         all_volume_data = {}
@@ -130,7 +151,16 @@ class MassVolumeRanker:
                                      semaphore: asyncio.Semaphore,
                                      addresses: List[str],
                                      batch_index: int) -> Dict[str, Dict]:
-        """Fetch minimal data needed for ranking"""
+        """
+        Fetch minimal data needed for ranking
+        Args:
+            session (aiohttp.ClientSession): The session object
+            semaphore (asyncio.Semaphore): The semaphore object
+            addresses (List[str]): A list of addresses
+            batch_index (int): The index of the batch
+        Returns:
+            Dict[str, Dict]: A dictionary of token data
+        """
         
         async with semaphore:
             try:
@@ -163,7 +193,13 @@ class MassVolumeRanker:
                 return {}
     
     def _extract_ranking_data(self, pairs: List[Dict]) -> Dict[str, Dict]:
-        """Extract only data needed for ranking - minimal processing"""
+        """
+        Extract only data needed for ranking - minimal processing
+        Args:
+            pairs (List[Dict]): A list of pairs
+        Returns:
+            Dict[str, Dict]: A dictionary of token data
+        """
         
         token_data = defaultdict(lambda: {
             'volume_24h': 0.0,
@@ -211,6 +247,10 @@ class MassVolumeRanker:
     def _create_volume_rankings(self, volume_data: Dict[str, Dict]) -> List[VolumeRanking]:
         """
         Create sorted rankings from volume data
+        Args:
+            volume_data (Dict[str, Dict]): A dictionary of token data
+        Returns:
+            List[VolumeRanking]: A list of VolumeRanking objects
         """
         
         rankings = []
@@ -239,6 +279,11 @@ class MassVolumeRanker:
                                    jupiter_token_map: Dict[str, TokenInfo]) -> List[TokenInfo]:
         """
         Enrich only the winning tokens with detailed data
+        Args:
+            winners (List[VolumeRanking]): A list of VolumeRanking objects
+            jupiter_token_map (Dict[str, TokenInfo]): A dictionary of token data
+        Returns:
+            List[TokenInfo]: A list of TokenInfo objects
         """
         
         enriched_tokens = []
@@ -256,6 +301,12 @@ class MassVolumeRanker:
 
 
     def save_tokens(self, enriched_tokens, filename="data/enriched_tokens.pkl"):
+        """
+        Save the enriched tokens to a pickle file
+        Args:
+            enriched_tokens (List[TokenInfo]): A list of TokenInfo objects
+            filename (str): The name of the file to save the tokens to
+        """
         try:
             with open(filename, "wb") as f:
                 pickle.dump(enriched_tokens, f)

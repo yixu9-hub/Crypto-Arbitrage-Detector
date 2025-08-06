@@ -13,7 +13,13 @@ class JupiterAPIClient:
         self.tokens_cache = []
     
     def fetch_token_list(self, max_age_hours: int = jupiter_tokens_api["max_age_hours"]) -> List[TokenInfo]:
-        """Load token list from local JSON file with freshness check"""
+        """
+        Load token list from local JSON file with freshness check
+        Args:
+            max_age_hours (int): The maximum age of the token file in hours
+        Returns:
+            List[TokenInfo]: A list of TokenInfo objects
+        """
         
         # Check if file exists and is fresh
         if not self._is_token_file_fresh(max_age_hours):
@@ -43,7 +49,13 @@ class JupiterAPIClient:
             return []
     
     def _is_token_file_fresh(self, max_age_hours: int) -> bool:
-        """Check if token file exists and is recent enough"""
+        """
+        Check if token file exists and is recent enough
+        Args:
+            max_age_hours (int): The maximum age of the token file in hours
+        Returns:
+            bool: True if the token file is fresh, False otherwise
+        """
         if not os.path.exists(self.token_file_path):
             return False
         
@@ -58,7 +70,13 @@ class JupiterAPIClient:
             return False
     
     def _process_token_list(self, data: List[dict]) -> List[TokenInfo]:
-        """Process token list data into TokenInfo objects"""
+        """
+        Process token list data into TokenInfo objects
+        Args:
+            data (List[dict]): The token list data
+        Returns:
+            List[TokenInfo]: A list of TokenInfo objects
+        """
         tokens = []
         skipped = 0
         
@@ -97,7 +115,11 @@ class JupiterAPIClient:
         return tokens
     
     def get_file_info(self) -> Dict:
-        """Get information about the token file"""
+        """
+        Get information about the token file
+        Returns:
+            Dict: A dictionary containing information about the token file
+        """
         if not os.path.exists(self.token_file_path):
             return {"exists": False}
         
@@ -124,29 +146,3 @@ class JupiterAPIClient:
             
         except Exception as e:
             return {"exists": True, "error": str(e)}
-
-def main():
-    jupiter_client = JupiterAPIClient()
-    file_info = jupiter_client.get_file_info()
-    if not file_info["exists"]:
-        print("Token file not found!")
-        print("Please run: python scripts/download_tokens.py")
-        return {}
-    
-    print(f"Token file: {file_info['token_count']} tokens, "
-            f"{file_info['size_mb']:.1f}MB")
-    
-    # Step 1: Load tokens from file
-    print("Step 1: Loading tokens from file...")
-    all_tokens = jupiter_client.fetch_token_list()
-    
-    if not all_tokens:
-        print("No tokens loaded! Please check your token file.")
-        return {}
-    
-    print("\nSample tokens:")
-    for i, token in enumerate(all_tokens[:5]):
-        print(f"   {i+1}. {token.symbol} - {token.name}")
-
-if __name__ == "__main__":
-    main()

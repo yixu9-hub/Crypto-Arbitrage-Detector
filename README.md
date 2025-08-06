@@ -1,3 +1,4 @@
+
 # Crypto-Arbitrage-Detector
 
 A powerful Solana-based arbitrage detection and execution engine, designed to analyze token swap paths across top decentralized exchanges and execute profitable routes via Jupiter aggregator.
@@ -150,3 +151,4 @@ Crypto-Arbitrage-Detector/
     * For free Solana RPC You are using mainnet RPC (e.g., https://api.mainnet-beta.solana.com), a private/paid RPC can provide a better transaction speed and succeed rate.
 
     * The simulated base amount should closely align with the actual transaction amount to ensure arbitrage success.
+
