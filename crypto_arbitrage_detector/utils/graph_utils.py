@@ -353,5 +353,4 @@ def analyze_graph(G: nx.DiGraph, show_visualization=True, show_edge_summary=True
         print_edge_summary(G)
 
     if show_visualization and G.number_of_nodes() > 0:
-        print("\nDisplaying graph visualization...")
         visualize_graph(G)

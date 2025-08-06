@@ -1,6 +1,9 @@
 '''
 Bellman-Ford Arbitrage Detection Algorithm
+Use Bellman-Ford algorithm to detect negative cycles in a directed graph, 
+indicating potential arbitrage opportunities.
 '''
+
 import networkx as nx
 import math
 import sys
@@ -99,8 +102,8 @@ class BellmanFordArbitrage:
         # Detect negative cycles
         negative_cycle_nodes = set()
         for u, v, data in graph.edges(data=True):
-            adjusted_weight = self._calculate_adjusted_weight(data)
-            if distances[u] != float('inf') and distances[u] + adjusted_weight < distances[v]:
+            weight = data.get('weight', 0)
+            if distances[u] != float('inf') and distances[u] + weight < distances[v]:
                 negative_cycle_nodes.add(v)
 
         # Reconstruct negative cycle paths
@@ -158,8 +161,8 @@ class BellmanFordArbitrage:
             # Find any node that can still be relaxed (part of negative cycle)
             cycle_node = None
             for u, v, data in graph.edges(data=True):
-                adjusted_weight = self._calculate_adjusted_weight(data)
-                if distances[u] != float('inf') and distances[u] + adjusted_weight < distances[v]:
+                weight = data.get('weight', 0)
+                if distances[u] != float('inf') and distances[u] + weight < distances[v]:
                     cycle_node = v
                     break
             
@@ -212,10 +215,10 @@ class BellmanFordArbitrage:
                 print(f"Path too short: {len(path)} nodes")
                 return None
 
-            # Calculate total path weight, slippage, price impact, gas fees, and trading fees
+            # Calculate total path weight and fees
+            # Since weight already contains information about slippage, price impact, 
+            # etc, we can use it directly to avoid double counting
             total_weight = 0.0
-            total_slippage = 0.0
-            total_price_impact = 0.0
             total_gas_fee = 0.0
             total_trading_fee = 0.0
 
@@ -232,37 +235,35 @@ class BellmanFordArbitrage:
 
                 edge_data = graph[from_token][to_token]
                 weight = edge_data.get('weight', 0)
+                gas_fee = edge_data.get('gas_fee', 0)
+                total_fee = edge_data.get('total_fee', 0)
+                edge_in_amount = edge_data.get('in_amount', 1.0)  # Original trade amount
 
-                slippage_bps = edge_data.get('slippage_bps', 0)
-                price_impact_pct = edge_data.get('price_impact_pct', 0)
-
-                slippage_decimal = slippage_bps / 10000.0
-
-                from_display = get_node_symbol(graph, from_token)
-                to_display = get_node_symbol(graph, to_token)
-                #print(f"Trade {i+1}: {from_display} -> {to_display}, weight: {weight:.6f}")
+                # Scale trading fees proportionally to our base_amount
+                # total_fee in EdgePairs is based on edge_in_amount, we need to scale it to base_amount(user inptut)
+                if edge_in_amount > 0:
+                    scaled_trading_fee = total_fee * (self.base_amount / edge_in_amount)
+                else:
+                    scaled_trading_fee = 0.0
 
                 total_weight += weight
-                total_slippage += slippage_decimal
-                total_price_impact += abs(price_impact_pct)
-            total_gas_fee += edge_data.get('gas_fee', 0)
-            
-            adjusted_weight = total_weight + \
-                total_slippage + total_price_impact
+                total_gas_fee += gas_fee
+                total_trading_fee += scaled_trading_fee
 
-            #print(f" Total weight: {total_weight:.6f}, adjusted: {adjusted_weight:.6f}")
+            #print(f" Total weight: {total_weight:.6f}")
 
             # Calculate profit ratio (negative weight indicates arbitrage opportunity)
-            if adjusted_weight >= 0:
-                print(f"Path not profitable: adjusted_weight = {adjusted_weight:.6f}")
+            if total_weight >= 0:
+                # print(f"Path not profitable: total_weight = {total_weight:.6f}")
                 return None  # No arbitrage opportunity
 
-            base_profit_ratio = math.exp(-adjusted_weight) - 1
-            #print(f"Profitable path: weight = {adjusted_weight:.6f}, profit = {base_profit_ratio:.6f}")
+            base_profit_ratio = math.exp(-total_weight) - 1
+            #print(f"Profitable path: weight = {total_weight:.6f}, profit = {base_profit_ratio:.6f}")
 
-            # Calculate gas fees only (outAmount already accounts for trading fees)
+            # Calculate total execution fees: gas fees + trading fees
             gas_fee_sol = total_gas_fee * 1e-9  # Convert lamports to SOL
-            total_fee_sol = gas_fee_sol  # Only gas fees, trading fees already in outAmount
+
+            total_fee_sol = gas_fee_sol + total_trading_fee  # Gas fees + trading fees from EdgePairs
             
             # Calculate net profit after all fees
             gross_profit = self.base_amount * base_profit_ratio
@@ -281,7 +282,7 @@ class BellmanFordArbitrage:
                 path=path,
                 path_symbols=path_symbols,
                 profit_ratio=net_profit_ratio,
-                total_weight=adjusted_weight,
+                total_weight=total_weight,
                 total_fee=total_fee_sol,
                 hop_count=len(path) - 1,
                 confidence_score=confidence_score,
@@ -299,14 +300,6 @@ class BellmanFordArbitrage:
                     if opp and opp.profit_ratio >= self.min_profit_threshold]
         return filtered
 
-    def _calculate_adjusted_weight(self, edge_data):
-        """Calculate adjusted weight including slippage and price impact"""
-        base_weight = edge_data.get('weight', 0)
-        slippage_bps = edge_data.get('slippage_bps', 0)
-        price_impact_pct = edge_data.get('price_impact_pct', 0)
-        slippage_decimal = slippage_bps / 10000.0
-        return base_weight + slippage_decimal + abs(price_impact_pct)
-
     def _initialize_distances_and_predecessors(self, graph, start_node):
         """Initialize distances and predecessors for Bellman-Ford"""
         distances = {}
@@ -320,7 +313,7 @@ class BellmanFordArbitrage:
     def _relax_edges(self, graph, distances, predecessors):
         """Perform edge relaxation step of Bellman-Ford algorithm"""
         for u, v, data in graph.edges(data=True):
-            adjusted_weight = self._calculate_adjusted_weight(data)
-            if distances[u] != float('inf') and distances[u] + adjusted_weight < distances[v]:
-                distances[v] = distances[u] + adjusted_weight
+            weight = data.get('weight', 0)
+            if distances[u] != float('inf') and distances[u] + weight < distances[v]:
+                distances[v] = distances[u] + weight
                 predecessors[v] = u

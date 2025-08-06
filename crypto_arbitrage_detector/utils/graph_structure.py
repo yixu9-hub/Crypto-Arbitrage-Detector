@@ -1,6 +1,9 @@
 '''
-从nova的list建静态图, 处理边的验证和错误处理, 提供下一步的接口
+Build a networkX token trading graph from EdgePairs list
+from_symbol, to_symbol, weight, price_ratio, slippage_bps, platform_fee, 
+price_impact_pct, total_fee, gas_fee are included
 '''
+
 import networkx as nx
 from typing import List
 from datetime import datetime
@@ -25,7 +28,7 @@ class TokenGraphBuilder:
         '''
         self.graph = None
         self.build_history = []
-        print("^ ^ TokenGraphBuilder initialized successfully")
+        # print("^ ^ TokenGraphBuilder initialized successfully")
 
     def build_graph_from_edge_lists(self, edges: List[EdgePairs]) -> nx.DiGraph:
         '''
@@ -55,7 +58,7 @@ class TokenGraphBuilder:
 
                 # validate fields
                 required_attrs = ['from_token', 'to_token', 'weight', 'price_ratio',
-                                  'slippage_bps', 'platform_fee', 'price_impact_pct', 'total_fee']
+                                  'slippage_bps', 'platform_fee', 'price_impact_pct', 'total_fee', 'gas_fee']
 
                 for attr in required_attrs:
                     if not hasattr(edge, attr):
@@ -84,12 +87,10 @@ class TokenGraphBuilder:
                         raise ValueError(
                             f"Edge at index {i} has invalid {attr}: {value} (must be non-negative)")
 
-                # weight must be a number
                 if not isinstance(edge.weight, (int, float)):
                     raise ValueError(
                         f"Edge at index {i} has invalid weight: {edge.weight} (must be a number)")
 
-                # 浮点值，total fee验证
                 if not isinstance(edge.slippage_bps, int) or edge.slippage_bps < 0:
                     raise ValueError(
                         f"Edge at index {i} has invalid slippage_bps: {edge.slippage_bps} (must be non-negative integer)")
@@ -97,6 +98,10 @@ class TokenGraphBuilder:
                 if not isinstance(edge.total_fee, (int, float)) or edge.total_fee < 0:
                     raise ValueError(
                         f"Edge at index {i} has invalid total_fee: {edge.total_fee} (must be non-negative number)")
+                        
+                if not isinstance(edge.gas_fee, int) or edge.gas_fee < 0:
+                    raise ValueError(
+                        f"Edge at index {i} has invalid gas_fee: {edge.gas_fee} (must be non-negative integer)")
 
                 # can add edge to graph
                 edge_attributes = {
@@ -105,7 +110,10 @@ class TokenGraphBuilder:
                     'slippage_bps': edge.slippage_bps,
                     'platform_fee': edge.platform_fee,
                     'price_impact_pct': edge.price_impact_pct,
-                    'total_fee': edge.total_fee
+                    'total_fee': edge.total_fee,
+                    'gas_fee': edge.gas_fee,
+                    'in_amount': edge.in_amount,
+                    'out_amount': edge.out_amount
                 }
                 
                 # Add symbol information if available

@@ -1,3 +1,7 @@
+"""
+Data structures for tokens, edges, and arbitrage opportunities.
+"""
+
 from typing import List, Dict, Optional
 from dataclasses import dataclass
 
