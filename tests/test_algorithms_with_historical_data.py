@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-测试脚本：使用新的测试数据验证所有算法是否可以正常运行
+algorithms test with historical data
+This script tests various arbitrage detection algorithms using historical data.
 """
 
 import sys
 import os
 import traceback
-import io
-import contextlib
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 from data.historical_data import new_arbitrage_test_data
 from crypto_arbitrage_detector.utils.graph_structure import build_graph_from_edge_lists
 from crypto_arbitrage_detector.algorithms.bellman_ford_algorithm import BellmanFordArbitrage
@@ -21,7 +19,10 @@ from crypto_arbitrage_detector.algorithms.arbitrage_detector_integrated import I
 
 
 def test_graph_construction():
-    """测试图构建"""
+    """
+    Test graph construction from historical data.
+    Returns the constructed graph if successful, None otherwise.
+    """
     print("=" * 80)
     print("🔧 测试图构建...")
     print("=" * 80)
