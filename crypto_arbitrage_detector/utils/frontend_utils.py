@@ -7,8 +7,6 @@ from typing import List
 from crypto_arbitrage_detector.utils.data_structures import EdgePairs, TokenInfo
 from crypto_arbitrage_detector.utils.get_quote_pair import get_edge_pairs
 from crypto_arbitrage_detector.scripts.token_loader import TokenLoader
-from crypto_arbitrage_detector.utils.graph_structure import build_graph_from_edge_lists
-from crypto_arbitrage_detector.utils.graph_utils import analyze_graph
 
 # Function to check if token file exists and is fresh
 def check_token_file():

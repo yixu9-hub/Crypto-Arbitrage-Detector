@@ -1,3 +1,8 @@
+"""
+Enrich gas fee for crypto arbitrage detection.
+This module fetches swap transactions and simulates gas fees for arbitrage opportunities.
+It enriches the quote responses with gas fee information.
+"""
 import asyncio
 import base64
 from typing import List, Dict

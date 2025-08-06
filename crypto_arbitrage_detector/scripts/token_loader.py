@@ -11,7 +11,7 @@ class TokenLoader:
         self.filename = filename
         self.tokens_cache = []
     
-    def load_tokens(self, filename="data/enriched_tokens.pkl", max_age_hours: int = 24) -> List[TokenInfo]:
+    def load_tokens(self, filename="data/enriched_tokens.pkl", max_age_hours: int = 2) -> List[TokenInfo]:
         if not self._is_token_pickle_file_fresh(filename, max_age_hours):
             print("Token file is missing or outdated.")
             print("Run: python src/volume_fetcher.py")

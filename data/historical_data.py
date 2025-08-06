@@ -1,3 +1,8 @@
+"""
+Historical data.
+This module contains test data for historical arbitrage detection.
+It includes a list of EdgePairs representing token swaps.
+"""
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
