@@ -44,6 +44,7 @@ A powerful Solana-based arbitrage detection and execution engine, designed to an
     ```bash
     streamlit run app.py
     ```
+
 **console with transaction functionality:**
     ```bash
     python main.py
