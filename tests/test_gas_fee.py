@@ -1,4 +1,9 @@
-# test_jupiter_swap.py
+"""
+# Test script: Enrich Jupiter swap responses with gas fee
+# This script tests the functionality of enriching Jupiter swap responses with gas fee
+# by fetching swap transactions and simulating gas fees.
+# It uses asyncio for concurrent requests.
+"""
 
 import sys
 import os
@@ -9,7 +14,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from crypto_arbitrage_detector.utils.enrich_gas_fee import enrich_responses_with_gas_fee
 
 async def main():
-    # origin Jupiter quoteResponse（from quote API）
     responses = [
         {
             "inputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
