@@ -1,4 +1,8 @@
-from typing import List
+"""
+# This module provides functionality to execute arbitrage paths using the Jupiter API.
+# It includes functions to fetch quotes, execute swaps, and handle transactions on the Solana blockchain
+# using the Solders library.
+"""
 import aiohttp
 import asyncio
 import base64
@@ -14,9 +18,7 @@ from solana.rpc.async_api import AsyncClient
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
-from crypto_arbitrage_detector.algorithms.arbitrage_detector_integrated import ArbitrageOpportunity, IntegratedArbitrageDetector
 from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api, jupiter_swap_api, solana_rpc_api
-from crypto_arbitrage_detector.utils.ATA_handle import ensure_atas_from_quote
 
 
 JUPITER_QUOTE_URL = jupiter_quote_api["base_url"]
@@ -32,7 +34,17 @@ async def fetch_quote(session, input_mint, output_mint, amount, quote_url=JUPITE
         "outputMint": output_mint,
         "amount": amount
     }
-
+    """
+    Fetch quote from Jupiter API for a given token pair.
+    Args:
+        session (aiohttp.ClientSession): The session to use for the request.
+        input_mint (str): The mint address of the input token.
+        output_mint (str): The mint address of the output token.
+        amount (int): The amount of input token to swap.
+    Returns:
+        Dict: The quote data from the API.
+    """
+    # Set headers to mimic a browser request, jupiter API requires
     headers = HEADER.copy()
     if api_key:
         headers.update({
@@ -45,15 +57,25 @@ async def fetch_quote(session, input_mint, output_mint, amount, quote_url=JUPITE
         quote = await resp.json()
 
     # Ensure ATAs exist for all mints in the quote
-    client = AsyncClient(rpc_url)
-    public_key = Pubkey.from_string(user_public_key)
-    payer_keypair = Keypair.from_bytes(base58.b58decode(user_private_key))
+    #client = AsyncClient(rpc_url)
+    #public_key = Pubkey.from_string(user_public_key)
+    #payer_keypair = Keypair.from_bytes(base58.b58decode(user_private_key))
     #async with AsyncClient(rpc_url) as client:
-    #    await ensure_atas_from_quote(client, public_key, quote, payer_keypair)
+    #await ensure_atas_from_quote(client, public_key, quote, payer_keypair)
     return quote
 
 
 async def fetch_swap_tx(session, quote_response, user_public_key, swap_url=JUPITER_SWAP_URL):
+    """
+    Fetch the swap transaction based on the quote response. 
+    Args:
+        session (aiohttp.ClientSession): The session to use for the request.
+        quote_response (Dict): The quote response from the Jupiter API.
+        user_public_key (str): The user's public key for the swap.
+        swap_url (str): The URL of the Jupiter swap API.
+    Returns:
+        Dict: The swap transaction data.
+    """
     payload = {
         "userPublicKey": user_public_key,
         "quoteResponse": quote_response,
@@ -66,15 +88,20 @@ async def fetch_swap_tx(session, quote_response, user_public_key, swap_url=JUPIT
 
 async def execute_path(opportunity, initial_amount, user_public_key, user_private_key_base58, rpc_url=RPC_URL):
     """
-    Execute a swap path using the Jupiter API.
-    :param path: List of token mints in the swap path.
-    :param initial_amount: Initial amount of the first token in the path.
-    :param user_public_key: User's public key for the swap.
-    :param user_private_key_base58: User's private key in base58 format.
+    Execute the arbitrage path by swapping tokens according to the opportunity.
+    Args:
+        opportunity (ArbitrageOpportunity): The arbitrage opportunity to execute.
+        initial_amount (float): The initial amount of the first token to swap.
+        user_public_key (str): The user's public key for the swap.
+        user_private_key_base58 (str): The user's private key in base58 format.
+        rpc_url (str): The Solana RPC URL to use for the transaction.
+    Returns:
+        None
     """
     path = opportunity.path
     amount = initial_amount
     solana_client = Client(rpc_url)  # connect to Solana RPC
+    #async_client = AsyncClient(rpc_url) # async client for confirmation
     keypair = Keypair.from_bytes(base58.b58decode(user_private_key_base58))
 
     async with aiohttp.ClientSession() as session:
@@ -125,7 +152,7 @@ async def execute_path(opportunity, initial_amount, user_public_key, user_privat
                         "0x1781": "Exact out amount not matched",
                         "0x1789": "Do not have ATA"
                     }.get(error_code, "Unknown custom error")
-                    print(f"❌ Error sending transaction: {error_code} → {friendly_message} you may need to have suffuficient balance of the input token in your wallet.\n(This issue may also occur if the last transaction was too fast and the updated balance hasn't been reflected on-chain yet.)")
+                    print(f"❌ Error sending transaction: {error_code} → {friendly_message} you may need to have suffuficient balance in your wallet.\n(This issue may also occur if the last transaction was too fast and the updated balance hasn't been reflected on-chain yet.)")
                 else:
                     print(f"❌ Error sending transaction: {e}")
                 break
@@ -135,10 +162,14 @@ async def execute_path(opportunity, initial_amount, user_public_key, user_privat
 
 def verify_key_pair(private_key_base58: str, public_key_base58: str) -> bool:
     """ 
-    Verifies if the provided private key matches the public key.
-    :param private_key_base58: Base58 encoded private key.
-    :param public_key_base58: Base58 encoded public key.
-    :return: True if the keys match, False otherwise.
+    Verify if the provided private key matches the public key.
+    Args:
+        private_key_base58 (str): The private key in base58 format.
+        public_key_base58 (str): The expected public key in base58 format.
+    Returns:
+        bool: True if the private key matches the public key, False otherwise.
+    Raises:
+        Exception: If there is an error during verification.
     """
     try:
         secret_bytes = base58.b58decode(private_key_base58)
@@ -156,6 +187,16 @@ def verify_key_pair(private_key_base58: str, public_key_base58: str) -> bool:
 
 
 def get_token_decimals(mint_address: str, rpc_url) -> int:
+    """
+    Get the decimals of a token by its mint address.
+    Args:
+        mint_address (str): The mint address of the token.
+        rpc_url (str): The Solana RPC URL to use for the request.
+    Returns:
+        int: The number of decimals for the token.
+    Raises:
+        Exception: If there is an error fetching the token supply.
+    """
     client = Client(rpc_url)
     pubkey = Pubkey.from_string(mint_address)
     resp = client.get_token_supply(pubkey)
@@ -163,12 +204,3 @@ def get_token_decimals(mint_address: str, rpc_url) -> int:
         return resp.value.decimals  # Return the decimals of the token
     else:
         raise Exception(f"Failed to get decimals for token {mint_address}")
-
-
-if __name__ == "__main__":
-    opportunity = ArbitrageOpportunity(path=['EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', 'KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS', 'So11111111111111111111111111111111111111112', '31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk', 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'], path_symbols=['EPjF...Dt1v', '31k8...Pygk', 'EPjF...Dt1v'], profit_ratio=0.027916626158513314, total_weight=-0.027534060785305847, total_fee=0.0, hop_count=2, confidence_score=0.27916626158513314, estimated_profit_sol=0.027916626158513314)
-    initial_amount = 0.00001  # Initial amount
-    user_pubkey = jupiter_swap_api["user_pubkey"]
-    user_privkey = ""  # 🧠 替换成你实际的 base58 私钥
-
-    asyncio.run(execute_path(opportunity, initial_amount, user_pubkey, user_privkey))

@@ -277,7 +277,7 @@ async def main(top_n_tokens: int = 10) -> Dict: #change to 10 for testing
     print("Step 2: Getting top volume tokens...")
     volume_ranker = MassVolumeRanker()
     top_tokens = await volume_ranker.get_top_tokens_optimized(
-        all_tokens[:1000], top_n_tokens
+        all_tokens[:2000], top_n_tokens
     )
 
     for winner in top_tokens:

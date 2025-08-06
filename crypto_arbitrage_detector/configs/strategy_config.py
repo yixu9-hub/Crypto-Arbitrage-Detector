@@ -1,6 +1,5 @@
 """
 Strategy Configuration for Arbitrage Detection Algorithms
-
 This module centralizes all algorithm parameters for easy management and consistency.
 """
 

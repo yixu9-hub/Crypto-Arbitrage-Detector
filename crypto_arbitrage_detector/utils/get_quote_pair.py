@@ -1,3 +1,8 @@
+"""
+Crypto Arbitrage Detector - Get Quote Pair Module
+This module fetches quote pairs from the Jupiter API for given token combinations.
+It provides functionality to fetch quotes, enrich them with gas fees, and handle token accounts.
+"""
 import math
 import sys, os
 import asyncio
