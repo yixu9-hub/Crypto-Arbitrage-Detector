@@ -1,3 +1,6 @@
+"""
+This script is used to load the token objects from the saved pickle file.
+"""
 import pickle
 import sys
 import os

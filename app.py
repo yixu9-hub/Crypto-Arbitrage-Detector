@@ -1,3 +1,7 @@
+"""
+This is the main file for Solana Arbitrage Detector.
+It is used to create the UI and the logic for the arbitrage detector.
+"""
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go

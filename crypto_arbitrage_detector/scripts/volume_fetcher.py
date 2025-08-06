@@ -1,3 +1,7 @@
+"""
+This script is used to fetch the volume data and rank the tokens.
+The top 10 popular tokens are enriched with the volume data and saved to a pickle file.
+"""
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
