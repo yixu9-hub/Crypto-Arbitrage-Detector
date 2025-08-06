@@ -117,12 +117,16 @@ Crypto-Arbitrage-Detector/
     You’ll be prompted to:
         Set a minimum profit threshold (default: 0.005).
         Choose whether to enable risk evaluation (to filter risky opportunities).
+        Set the base token amount to simulate the arbitrage trade.
     The system builds a token swap graph from this test dataset and detects profitable arbitrage paths.
     Optionally, you can execute a selected trade by providing your private key, public key and trading amount.
 
     * Live Arbitrage Analysis and Trading
     Analyze real-time arbitrage opportunities based on live Jupiter API token data.
     You’ll be prompted to:
+        Set a minimum profit threshold (default: 0.005).
+        Choose whether to enable risk evaluation (to filter risky opportunities).
+        Set the base token amount to simulate the arbitrage trade.
         Free API access (may be unstable or rate-limited),
         Or Paid API access (by providing your Jupiter API key).
     Arbitrage paths will be computed on-the-fly using Jupiter quotes.
@@ -134,7 +138,8 @@ Crypto-Arbitrage-Detector/
 3. Notes on Trading:
     * Make sure you have sufficient balance — ideally for all tokens involved in the arbitrage route.
 
-    * For free Jupiter API you are using https://quote-api.jup.ag/v6/swap and https://quote-api.jup.ag/v6/quote, it can not gurantee go through and will have strict rate limit per minute. Frequent requests to the Jupiter API may be interpreted as scraping and could lead to your IP being rate-limited or blocked.You can choose to upgrade for higher limits: https://portal.jup.ag/pricing
+    * For free Jupiter API you are using https://quote-api.jup.ag/v6/swap and https://quote-api.jup.ag/v6/quote, it can not gurantee go through and will have strict rate limit per minute. Frequent requests to the Jupiter API may be interpreted as scraping and could lead to your IP being rate-limited or blocked.You can choose to upgrade for higher limits: https://portal.jup.ag/pricing.
 
-    * For free Solana RPC You are using mainnet RPC (e.g., https://api.mainnet-beta.solana.com), a private/paid RPC can provide a better transaction speed and succeed rate
+    * For free Solana RPC You are using mainnet RPC (e.g., https://api.mainnet-beta.solana.com), a private/paid RPC can provide a better transaction speed and succeed rate.
 
+    * The simulated base amount should closely align with the actual transaction amount to ensure arbitrage success.

@@ -41,9 +41,10 @@ async def handle_option_2():
     """
     threshold = get_user_input("Enter minimum profit threshold (e.g., 0.005)", 0.005, is_float=True)
     risk_input = input("Enable risk evaluation? (y/n) [default: y]: ").strip().lower()
+    base_amount = get_user_input("Enter base token amount for simulation (e.g., 10)", 10, is_float=True)
     risk_eval = risk_input != "n"
     graph = build_graph_from_edge_lists(new_arbitrage_test_data)
-    detector = IntegratedArbitrageDetector(min_profit_threshold=threshold, enable_risk_evaluation=risk_eval)
+    detector = IntegratedArbitrageDetector(min_profit_threshold=threshold, base_amount=base_amount, enable_risk_evaluation=risk_eval)
     opportunities = detector.detect_arbitrage(graph, source_token="any_token", enable_bellman_ford=True,
                                               enable_triangle=True, enable_two_hop=True, enable_exhaustive_dfs=True)
     print(f"Total opportunities found: {len(opportunities)}")
@@ -93,6 +94,7 @@ async def handle_option_3():
     threshold = get_user_input("Enter minimum profit threshold (e.g., 0.005)", 0.005, is_float=True)
     risk_input = input("Enable risk evaluation? (y/n) [default: y]: ").strip().lower()
     risk_eval = risk_input != "n"
+    base_amount = get_user_input("Enter base token amount for simulation (e.g., 10)", 10, is_float=True)
 
     print("⚠️ WARNING: Jupiter is a paid API. Free requests may be unreliable or rate-limited.")
     print("You can either proceed with free requests (not guaranteed to work), or provide your own Jupiter Quote & Swap API endpoints and optional API key.")
@@ -119,7 +121,7 @@ async def handle_option_3():
     try:
         edges = await get_edge_pairs(
             selected_tokens, 
-            100000, 
+            base_amount, 
             api_key=api_key, 
             quote_url=quote_url, 
             swap_url=swap_url, 
@@ -130,7 +132,7 @@ async def handle_option_3():
     print(f"✅ Total edge pairs returned: {len(edges)}\n")
 
     graph = build_graph_from_edge_lists(edges)
-    detector = IntegratedArbitrageDetector(min_profit_threshold=threshold, enable_risk_evaluation=risk_eval)
+    detector = IntegratedArbitrageDetector(min_profit_threshold=threshold, base_amount=base_amount, enable_risk_evaluation=risk_eval)
     opportunities = detector.detect_arbitrage(graph, source_token="any_token_ignored",
                                               enable_bellman_ford=True, enable_triangle=True,
                                               enable_two_hop=True, enable_exhaustive_dfs=True)
