@@ -23,15 +23,18 @@ A powerful Solana-based arbitrage detection and execution engine, designed to an
     ```bash
     git clone https://github.com/yourname/crypto-arbitrage-detector.git
     cd crypto-arbitrage-detector
+    ```
 
 2. **Create a virtual environment (recommended)**
     ```bash
     python3 -m venv venv
     source venv/bin/activate
+    ```
 
 3. **Install dependencies**
     ```bash
     pip install -r requirements.txt
+    ```
 
 ---
 
