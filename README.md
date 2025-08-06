@@ -48,59 +48,61 @@ A powerful Solana-based arbitrage detection and execution engine, designed to an
 
 ## Structure
 
+## 📁 Project Structure
+
+```text
 Crypto-Arbitrage-Detector/
-├── app.py                               ← User Interface Entry point: CLI logic
-├── main.py                              ← Console Entry point: CLI logic
-├── requirements.txt                     ← Python dependencies
-├── README.md                            ← Project overview and usage guide
-│
-├── crypto_arbitrage_detector/           ← Core project module
-│   │
-│   ├── scripts/
-│   │   ├── volume_fetcher.py            ← Fetch and rank tokens from Jupiter
-│   │   ├── download_tokens.py           ← Download and save the whole token list
-│   │   ├── token_loader.py              ← Load tokens from pkl file
-│   │   └──jupiter_client.py             ← Enrich tokens with info from Jupiter API
-│   │
-│   ├── utils/
-│   │   ├── data_structure.py            ← Data structures used for the whole project
-│   │   ├── get_quote_pair.py            ← Get edge pairs from Jupiter API
-│   │   ├── simulate_gas_fee.py          ← Simulate gas fee from Jupiter API and Solana RPC
-│   │   ├── enrich_gas_fee.py            ← Enrich token pairs with gas fee info
-│   │   ├── transaction.py               ← Build, sign, send transactions + error handling
-│   │   ├── ATA_handle.py                ← Create token ata for user
-│   │   ├── graph_structure.py           ← Create edge pairs graph
-│   │   ├── graph_utils.py               ← Visualize edge pairs graph
-│   │   └── frontend_utils.py            ← Helper methods for user interface(app.py)
-│   │
-│   ├── algorithms/
-│   │   ├── arbitrage_detector_integrated.py    ← Algorithms Integrations
-│   │   ├── bellman_ford_algorithms.py          ← Bellman ford algorithms for arbitrage
-│   │   ├── exhaustive_dfs_algorithms.py        ← Exhaustive dfs algorithms for arbitrage
-│   │   ├── triangle_arbitrage_algorithms.py    ← Triangle algorithms for arbitrage
-│   │   ├── two_hop_arbitrage_algorithms.py     ← Two hop algorithms for arbitrage
-│   │   └── risk_evaluator.py                   ← Risk evaluator for arbitrage
-│   │
-│   └── config/
-│       ├── request_config.py            ← Configs for all API calls
-│       └── strategy_config.py           ← Configs for algorithm related strategies
+├── app.py                               ← User Interface Entry point: CLI logic  
+├── main.py                              ← Console Entry point: CLI logic  
+├── requirements.txt                     ← Python dependencies  
+├── README.md                            ← Project overview and usage guide  
+
+├── crypto_arbitrage_detector/           ← Core project module  
+│   ├── scripts/                         ← Scripts for fetching and loading token data  
+│   │   ├── volume_fetcher.py            ← Fetch and rank tokens from Jupiter  
+│   │   ├── download_tokens.py           ← Download and save the whole token list  
+│   │   ├── token_loader.py              ← Load tokens from pkl file  
+│   │   └── jupiter_client.py            ← Enrich tokens with info from Jupiter API  
 │  
-│
-├── data/
-│   ├── jupiter_tokens.json              ← Cached all Jupiter token list
-│   ├── enriched_tokens.pkl              ← Cached top Jupiter token list
-│   └── historical_data.py               ← Cached historical token pairs list
-│
-├── tests/
-│   ├── mock_quote_pair.py               ← Predefined token pairs for test
-│   ├── mock_token_info.py               ← Predefined token info list for test
-│   ├── test_algorithms.py               ← Example tests for algoritms
-│   ├── test_get_pair.py                 ← Example tests for get quote pair
-│   ├── test_jupiter_client.py           ← Example tests for jupiter client
-│   ├── test_gas_fee.py                  ← Example tests for enrich gas fee
-│   └── test_transaction.py              ← Example tests for transaction
-│
-└── .gitignore
+│   ├── utils/                           ← Utility functions and helpers  
+│   │   ├── data_structure.py            ← Data structures used across the project  
+│   │   ├── get_quote_pair.py            ← Get edge pairs from Jupiter API  
+│   │   ├── simulate_gas_fee.py          ← Simulate gas fee from Jupiter and Solana RPC  
+│   │   ├── enrich_gas_fee.py            ← Enrich token pairs with gas fee info  
+│   │   ├── transaction.py               ← Build, sign, send transactions + error handling  
+│   │   ├── ATA_handle.py                ← Create token ATA for user  
+│   │   ├── graph_structure.py           ← Create edge pairs graph  
+│   │   ├── graph_utils.py               ← Visualize edge pairs graph  
+│   │   └── frontend_utils.py            ← Helper methods for user interface (`app.py`)  
+│  
+│   ├── algorithms/                      ← Arbitrage detection logic  
+│   │   ├── arbitrage_detector_integrated.py    ← Algorithms Integrations  
+│   │   ├── bellman_ford_algorithms.py          ← Bellman-Ford algorithms for arbitrage  
+│   │   ├── exhaustive_dfs_algorithms.py        ← Exhaustive DFS algorithms for arbitrage  
+│   │   ├── triangle_arbitrage_algorithms.py    ← Triangle arbitrage detection  
+│   │   ├── two_hop_arbitrage_algorithms.py     ← Two-hop arbitrage detection  
+│   │   └── risk_evaluator.py                   ← Evaluate risk of arbitrage paths  
+│  
+│   └── config/                         ← Configuration files  
+│       ├── request_config.py            ← API call configurations  
+│       └── strategy_config.py           ← Arbitrage algorithm strategies  
+│  
+├── data/                                ← Cached token and historical data  
+│   ├── jupiter_tokens.json              ← All Jupiter token list  
+│   ├── enriched_tokens.pkl              ← Filtered top tokens list  
+│   └── historical_data.py               ← Cached historical token pairs  
+│  
+├── tests/                               ← Unit tests and mock data  
+│   ├── mock_quote_pair.py               ← Predefined token pairs for testing  
+│   ├── mock_token_info.py               ← Predefined token info for testing  
+│   ├── test_algorithms.py               ← Tests for arbitrage algorithms  
+│   ├── test_get_pair.py                 ← Tests for quote pair retrieval  
+│   ├── test_jupiter_client.py           ← Tests for Jupiter client functions  
+│   ├── test_gas_fee.py                  ← Tests for gas fee enrichment  
+│   └── test_transaction.py              ← Tests for transaction execution  
+│  
+└── .gitignore                           ← Files and folders to exclude from Git
+```
 
 ---
 
