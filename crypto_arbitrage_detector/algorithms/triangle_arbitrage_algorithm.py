@@ -1,6 +1,8 @@
 '''
 Triangle Arbitrage Detection Algorithm
+Arbitrage through three-token cycles
 '''
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -100,21 +102,40 @@ class TriangleArbitrage:
             if len(path) < 2:  # Must have at least 2 hops
                 return None
 
-            # Calculate adjusted weight with market factors
-            weight_result = self._calculate_adjusted_weight(graph, path)
-            if weight_result is None:
-                return None
+            # Calculate path weight and trading fees
+            # Since weight already contains information about slippage, price impact,
+            # etc, we can use it directly to avoid double counting
+            total_weight = 0.0
+            total_trading_fee = 0.0
+            total_gas_fee = 0.0
+
+            for i in range(len(path) - 1):
+                from_token, to_token = path[i], path[i + 1]
+
+                if not graph.has_edge(from_token, to_token):
+                    return None
+
+                edge_data = graph[from_token][to_token]
+                total_weight += edge_data.get('weight', 0)
+                total_gas_fee += edge_data.get('gas_fee', 0)
                 
-            adjusted_weight, total_gas_fee = weight_result
-            if adjusted_weight >= 0:
+                # Calculate proportional trading fee
+                edge_in_amount = edge_data.get('in_amount', 1)
+                edge_total_fee = edge_data.get('total_fee', 0)
+                scaled_trading_fee = edge_total_fee * (self.base_amount / edge_in_amount)
+                total_trading_fee += scaled_trading_fee
+
+            if total_weight >= 0:
                 return None
 
-            # Calculate gas fees only (outAmount already accounts for trading fees)
-            profit_ratio = math.exp(-adjusted_weight) - 1
-            gas_fee_sol = total_gas_fee * 1e-9  # Convert lamports to SOL
-            total_fee_sol = gas_fee_sol  # Only gas fees, trading fees already in outAmount
+            # Calculate profit ratio using path weight
+            profit_ratio = math.exp(-total_weight) - 1
             
-            # Calculate net profit after gas fees
+            # Convert gas fees from lamports to SOL and calculate total fees
+            gas_fee_sol = total_gas_fee * 1e-9
+            total_fee_sol = total_trading_fee + gas_fee_sol
+            
+            # Calculate net profit after all fees
             gross_profit = self.base_amount * profit_ratio
             net_profit = gross_profit - total_fee_sol
             net_profit_ratio = net_profit / self.base_amount
@@ -131,7 +152,7 @@ class TriangleArbitrage:
                 path=path,
                 path_symbols=path_symbols,
                 profit_ratio=net_profit_ratio,
-                total_weight=adjusted_weight,
+                total_weight=total_weight,
                 total_fee=total_fee_sol,
                 hop_count=len(path) - 1,  # 3 hops in triangle
                 confidence_score=confidence_score,
@@ -142,30 +163,6 @@ class TriangleArbitrage:
             print(
                 f"Failed to create arbitrage opportunity [{self.algorithm_name}]: {e}")
             return None
-
-    def _calculate_adjusted_weight(self, graph: nx.DiGraph, path: List[str]) -> Optional[tuple]:
-        """
-        Calculate path weight adjusted for slippage and price impact, return weight and gas fees
-        """
-        total_weight = 0.0
-        total_slippage = 0.0
-        total_price_impact = 0.0
-        total_gas_fee = 0.0
-
-        for i in range(len(path) - 1):
-            from_token, to_token = path[i], path[i + 1]
-
-            if not graph.has_edge(from_token, to_token):
-                return None
-
-            edge_data = graph[from_token][to_token]
-            total_weight += edge_data.get('weight', 0)
-            total_slippage += edge_data.get('slippage_bps', 0) / 10000.0
-            total_price_impact += abs(edge_data.get('price_impact_pct', 0))
-            total_gas_fee += edge_data.get('gas_fee', 0)
-
-        adjusted_weight = total_weight + total_slippage + total_price_impact
-        return adjusted_weight, total_gas_fee
 
     def _filter_profitable_opportunities(self, opportunities: List[ArbitrageOpportunity]) -> List[ArbitrageOpportunity]:
         """Filter and sort opportunities by profit threshold"""

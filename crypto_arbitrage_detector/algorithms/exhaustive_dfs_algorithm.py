@@ -128,7 +128,7 @@ class ExhaustiveDFSArbitrage:
                     # Calculate final cycle weight
                     if graph.has_edge(current_node, neighbor):
                         edge_data = graph[current_node][neighbor]
-                        final_weight = self._calculate_adjusted_weight(edge_data)
+                        final_weight = edge_data.get('weight', 0)
                         total_cycle_weight = path_weight + final_weight
                         
                         # Check if this is a profitable cycle (negative weight = profitable)
@@ -141,7 +141,7 @@ class ExhaustiveDFSArbitrage:
                 elif neighbor not in visited_in_path and depth < self.max_hops - 1:
                     if graph.has_edge(current_node, neighbor):
                         edge_data = graph[current_node][neighbor]
-                        edge_weight = self._calculate_adjusted_weight(edge_data)
+                        edge_weight = edge_data.get('weight', 0)
                         new_weight = path_weight + edge_weight
                         
                         # Recursive call with updated state
@@ -206,10 +206,10 @@ class ExhaustiveDFSArbitrage:
             if len(path) < 3:
                 return None
 
-            # Calculate total path weight using unified method
+            # Calculate path weight and trading fees separately
             total_weight = 0.0
-            total_gas_fee = 0.0
             total_trading_fee = 0.0
+            total_gas_fee = 0.0
 
             for i in range(len(path) - 1):
                 from_token = path[i]
@@ -220,19 +220,25 @@ class ExhaustiveDFSArbitrage:
 
                 # Get edge data
                 edge_data = graph[from_token][to_token]
-                total_weight += self._calculate_adjusted_weight(edge_data)
+                total_weight += edge_data.get('weight', 0)
                 total_gas_fee += edge_data.get('gas_fee', 0)
+                
+                # Calculate proportional trading fee
+                edge_in_amount = edge_data.get('in_amount', 1)
+                edge_total_fee = edge_data.get('total_fee', 0)
+                scaled_trading_fee = edge_total_fee * (self.base_amount / edge_in_amount)
+                total_trading_fee += scaled_trading_fee
 
             # Check profitability
             if total_weight >= 0:
                 return None
 
-            # Calculate profit ratio
+            # Calculate profit ratio using path weight
             profit_ratio = math.exp(-total_weight) - 1
             
-            # Calculate gas fees only (outAmount already accounts for trading fees)
-            gas_fee_sol = total_gas_fee * 1e-9  # Convert lamports to SOL
-            total_fee_sol = gas_fee_sol  # Only gas fees, trading fees already in outAmount
+            # Convert gas fees from lamports to SOL and calculate total fees
+            gas_fee_sol = total_gas_fee * 1e-9
+            total_fee_sol = total_trading_fee + gas_fee_sol
             
             # Calculate net profit after all fees
             gross_profit = self.base_amount * profit_ratio

@@ -6,13 +6,15 @@ This module evaluates the risk of arbitrage opportunities based on factors:
 - Transaction complexity (hop count)
 """
 
-from utils.data_structures import ArbitrageOpportunity
-from configs.strategy_config import get_risk_config
-from typing import List, Dict, Optional
 import math
 import sys
 import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from typing import List, Dict, Optional
+from crypto_arbitrage_detector.utils.data_structures import ArbitrageOpportunity
+from crypto_arbitrage_detector.configs.strategy_config import get_risk_config
 
 
 class ArbitrageRiskEvaluator:

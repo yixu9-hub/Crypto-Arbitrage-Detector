@@ -75,13 +75,13 @@ class IntegratedArbitrageDetector:
         else:
             self.risk_evaluator = None
 
-        print(f"IntegratedArbitrageDetector initialized:")
-        print(f"   Min profit threshold: {self.min_profit_threshold*100:.1f}%")
-        print(f"   Max hops: {self.max_hops}")
-        print(f"   Base amount: {self.base_amount} SOL")
-        print(
-            f"   Risk evaluation: {'Enabled' if self.enable_risk_evaluation else 'Disabled'}")
-        print(f"   Available algorithms: Bellman-Ford, Triangle, Two-Hop, Exhaustive DFS")
+        # print(f"IntegratedArbitrageDetector initialized:")
+        # print(f"   Min profit threshold: {self.min_profit_threshold*100:.1f}%")
+        # print(f"   Max hops: {self.max_hops}")
+        # print(f"   Base amount: {self.base_amount} SOL")
+        # print(
+        #     f"   Risk evaluation: {'Enabled' if self.enable_risk_evaluation else 'Disabled'}")
+        # print(f"   Available algorithms: Bellman-Ford, Triangle, Two-Hop, Exhaustive DFS")
 
     def detect_arbitrage(self, graph: nx.DiGraph,
                          source_token: str = None,
