@@ -120,7 +120,7 @@ class BellmanFordArbitrage:
                     else:
                         print(f"NO opportunity created")
 
-        print(f"Found {len(opportunities)} opportunities from source {source_token}")
+        # print(f"Found {len(opportunities)} opportunities from source {source_token}")
         return opportunities
 
     def _are_same_cycle(self, path1: List[str], path2: List[str]) -> bool:
