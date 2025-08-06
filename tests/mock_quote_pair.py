@@ -1,3 +1,7 @@
+"""
+Mock quote pair for testing.
+This module provides mock data for quote pairs used in testing the crypto arbitrage detector.
+"""
 from dataclasses import dataclass
 from typing import List
 from crypto_arbitrage_detector.utils.data_structures import TokenInfo

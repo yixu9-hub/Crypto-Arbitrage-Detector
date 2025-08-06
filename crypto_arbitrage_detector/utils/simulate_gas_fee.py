@@ -1,3 +1,8 @@
+"""
+Enrich gas fee for crypto arbitrage detection.
+This module fetches swap transactions and simulates gas fees for arbitrage opportunities.
+It enriches the quote responses with gas fee information.
+"""
 import aiohttp
 import json
 from crypto_arbitrage_detector.configs.request_config import jupiter_swap_api, solana_rpc_api
@@ -6,7 +11,13 @@ async def fetch_swap_transaction(quote_response,
                                  user_pubkey=jupiter_swap_api["user_pubkey"], 
                                  api_key=jupiter_swap_api["api_key"],
                                  swap_url=jupiter_swap_api["base_url"]):
-    """Fetch the swap transaction from Jupiter API based on the quote response."""
+    """
+    Fetch the swap transaction from Jupiter API for a given quote response.
+    Args:
+        quote_response (Dict): The quote response from Jupiter API.
+    Returns:
+        str: Base64 encoded swap transaction.
+    """
     url = swap_url
     headers = jupiter_swap_api["headers"].copy()
     if api_key:
@@ -37,7 +48,16 @@ async def simulate_gas_fee(
         base_fee: int = solana_rpc_api["base_fee"],
         solana_rpc: str = solana_rpc_api["base_url"]
         ) -> int:
-    """Simulate the gas fee for a transaction using Solana RPC."""
+    """
+    Simulate the gas fee for a transaction using Solana RPC.
+    Args:
+        base64_tx (str): Base64 encoded transaction.
+        unit_price_lamport (float): Price per compute unit in lamports.
+        base_fee (int): Base fee in lamports.
+        solana_rpc (str): Solana RPC URL.
+    Returns:
+        int: Estimated gas fee in lamports.
+    """
     url = solana_rpc
     headers = solana_rpc_api["headers"]
     body = {

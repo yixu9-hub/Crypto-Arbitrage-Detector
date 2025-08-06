@@ -1,4 +1,9 @@
-from typing import List, Dict, Optional
+"""
+Data structures for crypto arbitrage detection.
+This module defines the data structures used in the crypto arbitrage detector,
+including token information, edge pairs, and arbitrage opportunities.
+"""
+from typing import List
 from dataclasses import dataclass
 
 @dataclass

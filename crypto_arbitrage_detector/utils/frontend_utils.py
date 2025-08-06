@@ -12,6 +12,7 @@ from crypto_arbitrage_detector.utils.graph_structure import build_graph_from_edg
 from crypto_arbitrage_detector.utils.graph_utils import analyze_graph
 from crypto_arbitrage_detector.configs.request_config import jupiter_quote_api, jupiter_swap_api
 
+
 # Function to check if token file exists and is fresh
 def check_token_file():
     """

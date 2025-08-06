@@ -1,7 +1,12 @@
-import sys
-import os
+"""
+Test script: Fetch edge pairs using pickle file
+This script tests the functionality of fetching edge pairs between all token pairs
+using a pickle file containing enriched token information.
+"""
 import asyncio
 import pickle
+import sys
+import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from typing import List
 print("importing modules...")
@@ -10,12 +15,16 @@ from mock_quote_pair import test_tokens   # mock data for testing
 from crypto_arbitrage_detector.utils.data_structures import EdgePairs, TokenInfo
 
 async def test_edge_pairs() -> List[EdgePairs]:
+    """
+    Test fetching edge pairs using a pickle file.
+    Returns a list of EdgePairs.
+    """
     print("🔁 Running quote test using pickle file...\n")
     
     current_file_path = os.path.abspath(__file__)
     project_root = os.path.dirname(os.path.dirname(current_file_path))
     pkl_path = os.path.join(project_root, "data", "enriched_tokens.pkl")
-    # 调用主函数获取所有 token 对之间的边
+    # Load tokens from pickle file
     with open(pkl_path, "rb") as f:
         TokenLists: List[TokenInfo] = pickle.load(f)
     print(f" Loaded {len(TokenLists)} tokens from pickle file\n")
@@ -43,9 +52,9 @@ async def test_edge_pairs() -> List[EdgePairs]:
     return edges
 
 async def main():
-    print("开始获取边信息...")
+    print("🔁 Fetching edge information...")
     edge_list = await test_edge_pairs()
-    print(f"共获取到 {len(edge_list)} 条边")
+    print(f"Total edge pairs fetched: {len(edge_list)}")
     for edge in edge_list:
         print(edge)
 
