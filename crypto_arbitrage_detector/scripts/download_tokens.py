@@ -1,3 +1,7 @@
+"""
+This script downloads the token list from the Jupiter API and saves it to a JSON file.
+The token list is used to create the objects of the tokens.
+"""
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
@@ -5,7 +9,6 @@ import requests
 import json
 from datetime import datetime
 from crypto_arbitrage_detector.configs.request_config import jupiter_tokens_api
-
 
 class TokenDownloader:
     def __init__(self):

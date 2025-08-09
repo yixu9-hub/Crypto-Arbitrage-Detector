@@ -1,3 +1,7 @@
+"""
+This is the main file for Solana Arbitrage Detector.
+It is used to create the UI and the logic for the arbitrage detector.
+"""
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -44,6 +48,10 @@ if 'edges' not in st.session_state:
     st.session_state.edges = None
 if 'graph' not in st.session_state:
     st.session_state.graph = None
+if 'detection_run' not in st.session_state:
+    st.session_state.detection_run = False
+if 'detection_message' not in st.session_state:
+    st.session_state.detection_message = None
 
 
 # Custom CSS for better styling
@@ -152,11 +160,17 @@ if not jupiter_ok or not enriched_ok:
 # Main UI
 st.markdown('<h1 class="main-header">🔄 Solana Arbitrage Opportunity Detective</h1>', unsafe_allow_html=True)
 
+# Display detection message if available
+if st.session_state.detection_message:
+    st.success(st.session_state.detection_message)
+    # Clear the message after displaying it
+    st.session_state.detection_message = None
+
 # Sidebar configuration
 st.sidebar.header("⚙️ Configuration")
 
 # Detection parameters
-st.sidebar.subheader("Detection Parameters")
+st.sidebar.subheader("🔍 Detection Parameters")
 min_profit_threshold = st.sidebar.slider(
     "Minimum Profit Threshold (%)", 
     min_value=0.1, 
@@ -246,7 +260,7 @@ if data_source == "💎 Premium API (Jupiter Membership Required)":
 
 
 # Algorithm selection
-st.sidebar.subheader("Algorithm Selection")
+st.sidebar.subheader("🧮 Algorithm Selection")
 selected_algorithms = st.sidebar.multiselect(
     "Select algorithms to use (leave empty for all)",
     options=["bellman_ford", "triangle", "two_hop", "exhaustive_DFS"],
@@ -305,6 +319,9 @@ if 'current_data_source' not in st.session_state:
 if st.session_state.current_data_source != data_source:
     st.session_state.edges = None
     st.session_state.graph = None
+    st.session_state.arbitrage_results = []
+    st.session_state.detection_run = False
+    st.session_state.detection_message = None
     st.session_state.current_data_source = data_source
 
 # Control buttons
@@ -362,7 +379,8 @@ with col1:
                 results = st.session_state.detector.detect_arbitrage(st.session_state.graph, None, enable_bellman_ford, enable_triangle, enable_two_hop)
                 st.session_state.arbitrage_results = results
                 st.session_state.last_update = datetime.now()
-                # st.success(f"✅ Detection complete! Found {len(results)} opportunities")
+                st.session_state.detection_run = True
+                st.session_state.detection_message = f"✅ Detection complete! Found {len(results)} opportunities"
                 st.rerun()  # Rerun to update the UI with the new graph
 with col2:
     stop_detection = st.button("⏹️ Stop")   
@@ -375,7 +393,6 @@ st.sidebar.markdown(f'<p class="{status_color}">Status: {status_text}</p>', unsa
 if st.session_state.last_update:
     st.sidebar.write(f"Last Update: {st.session_state.last_update.strftime('%H:%M:%S')}")
 
-# Debug info
 st.sidebar.write(f"**Current Data Source:** {data_source}")
 if st.session_state.edges:
     st.sidebar.write(f"**Edges Loaded:** {len(st.session_state.edges)}")
