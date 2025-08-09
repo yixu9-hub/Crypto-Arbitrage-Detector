@@ -3,6 +3,13 @@
 
 A powerful Solana-based arbitrage detection and execution engine, designed to analyze token swap paths across top decentralized exchanges and execute profitable routes via Jupiter aggregator.
 
+# Table of Contents
+
+1. [Features](#features)
+2. [Preview](#preview)
+3. [Prerequisite](#prerequisite)
+4. [Usage](#usage)
+
 ## Features
 
 - Real-time liquidity ranking via Jupiter API
@@ -16,6 +23,21 @@ A powerful Solana-based arbitrage detection and execution engine, designed to an
 - Automatically constructs and executes multi-hop swap transactions
 - Trade confirmation and private key-based transaction signing
 
+---
+
+## Preview
+
+![UI Screenshot](screenshots/preview_1.png)
+![UI Screenshot](screenshots/preview_2.png)
+
+---
+
+## Prerequisite
+
+- Python 3.8+
+- Streamlit 1.28.0
+- Other dependencies (check [requirements.txt](requirements.txt))
+  
 ---
 
 ## Installation
