@@ -8,7 +8,10 @@ A powerful Solana-based arbitrage detection and execution engine, designed to an
 1. [Features](#features)
 2. [Preview](#preview)
 3. [Prerequisite](#prerequisite)
-4. [Usage](#usage)
+4. [Installation](#installation)
+5. [Usage](#usage)
+6. [Project Structure](#project-structure)
+7. [Console Workflow](#console-workflow)
 
 ## Features
 
@@ -134,7 +137,7 @@ Crypto-Arbitrage-Detector/
 
 ---
 
-## Console workflow
+## Console Workflow
 
 1. Run python main.py
 
